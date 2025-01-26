@@ -1,0 +1,18 @@
+{
+	"i18n": true,
+	"type": "panel",
+	"items": {
+		"serial adapter": {
+			"type": "text",
+			"label": "serial adapter",
+			"default": "ttyS0",
+			"newLine": true
+		},
+		"bms device": {
+			"type": "number",
+			"label": "bms device",
+			"default": 1,
+			"newLine": true
+		}
+	}
+}

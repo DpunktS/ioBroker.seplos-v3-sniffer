@@ -1,0 +1,92 @@
+{
+	"common": {
+		"name": "seplos-v3-sniffer",
+		"version": "0.0.1",
+		"news": {
+			"0.0.1": {
+				"en": "initial release",
+				"de": "Erstveröffentlichung",
+				"ru": "Начальная версия",
+				"pt": "lançamento inicial",
+				"nl": "Eerste uitgave",
+				"fr": "Première version",
+				"it": "Versione iniziale",
+				"es": "Versión inicial",
+				"pl": "Pierwsze wydanie",
+				"uk": "Початкова версія",
+				"zh-cn": "首次出版"
+			}
+		},
+		"titleLang": {
+			"en": "seplos-v3-sniffer",
+			"de": "seplos-v3-sniffer",
+			"ru": "Seplos-V3-Sniffer",
+			"pt": "seplos-v3-sniffer",
+			"nl": "Seplos-V3-Sniffer",
+			"fr": "seplos-v3-renifleur",
+			"it": "Seplos-V3-Sniffer",
+			"es": "seplos-v3-sniffer",
+			"pl": "SEPLOS-V3-SNIFFER",
+			"uk": "seplos-v3-sniffer",
+			"zh-cn": "seplos-v3-嗅探器"
+		},
+		"desc": {
+			"en": "seplos-v3-sniffer",
+			"de": "seplos-v3-sniffer",
+			"ru": "Seplos-V3-Sniffer",
+			"pt": "seplos-v3-sniffer",
+			"nl": "Seplos-V3-Sniffer",
+			"fr": "seplos-v3-renifleur",
+			"it": "Seplos-V3-Sniffer",
+			"es": "seplos-v3-sniffer",
+			"pl": "SEPLOS-V3-SNIFFER",
+			"uk": "seplos-v3-sniffer",
+			"zh-cn": "seplos-v3-嗅探器"
+		},
+		"authors": [
+			"DpunktS <scheiner@online.de>"
+		],
+		"keywords": [
+			"seplos",
+			"bms",
+			"akku",
+			"v3",
+			"multipack"
+		],
+		"licenseInformation": {
+			"type": "free",
+			"license": "MIT"
+		},
+		"platform": "Javascript/Node.js",
+		"icon": "seplos-v3-sniffer.jpg",
+		"enabled": true,
+		"extIcon": "https://raw.githubusercontent.com/DpunktS/ioBroker.seplos-v3-sniffer/main/admin/seplos-v3-sniffer.jpg",
+		"readme": "https://github.com/DpunktS/ioBroker.seplos-v3-sniffer/blob/main/README.md",
+		"loglevel": "info",
+		"tier": 3,
+		"mode": "daemon",
+		"type": "iot-systems",
+		"compact": true,
+		"connectionType": "local",
+		"dataSource": "push",
+		"adminUI": {
+			"config": "json"
+		},
+		"dependencies": [
+			{
+				"js-controller": ">=6.0.11"
+			}
+		],
+		"globalDependencies": [
+			{
+				"admin": ">=7.0.23"
+			}
+		]
+	},
+	"native": {
+		"serial adapter": "ttyS0",
+		"bms device": 1
+	},
+	"objects": [],
+	"instanceObjects": []
+}
