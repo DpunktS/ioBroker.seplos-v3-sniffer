@@ -1,5 +1,5 @@
 {
 	"seplos-v3-sniffer adapter settings": "Adapterinstellingen voor seplos-v3-sniffer",
-	"option1": "Option1",
-	"option2": "optie2"
+	"serial adapter (tcp://ip:2001, ttyS0)": "seriële adapter (tcp://ip:2001, ttyS0)",
+	"update_interval (s)": "update interval (s)" 
 }

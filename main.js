@@ -1,167 +1,260 @@
 "use strict";
 
-/*
- * Created with @iobroker/create-adapter v2.6.5
- */
-
-// The adapter-core module gives you access to the core ioBroker functions
-// you need to create an adapter
-const utils = require("@iobroker/adapter-core");
-
-// Load your modules here, e.g.:
-// const fs = require("fs");
+const { SerialPort } = require('serialport');
+const { ReadlineParser } = require('@serialport/parser-readline');
+const net = require('net');
+const utils = require('@iobroker/adapter-core');
 
 class SeplosV3Sniffer extends utils.Adapter {
+    constructor(options = {}) {
+        super({
+            ...options,
+            name: 'seplos-v3-sniffer',
+        });
 
-	/**
-	 * @param {Partial<utils.AdapterOptions>} [options={}]
-	 */
-	constructor(options) {
-		super({
-			...options,
-			name: "seplos-v3-sniffer",
-		});
-		this.on("ready", this.onReady.bind(this));
-		this.on("stateChange", this.onStateChange.bind(this));
-		// this.on("objectChange", this.onObjectChange.bind(this));
-		// this.on("message", this.onMessage.bind(this));
-		this.on("unload", this.onUnload.bind(this));
-	}
+        this.on('ready', this.onReady.bind(this));
+        this.on('stateChange', this.onStateChange.bind(this));
+        this.on('unload', this.onUnload.bind(this));
+        this.serialPort = null;
+        this.socket = null;
+        this.buffer = [];
+        //this.bmsCount = 1;
+        this.lastUpdate = {};
+        this.updateInterval = 5000;
+    }
 
-	/**
-	 * Is called when databases are connected and adapter received configuration.
-	 */
-	async onReady() {
-		// Initialize your adapter here
+    async onReady() {
+        const serialAdapter = this.config['serial adapter'] || 'ttyS0';
+        //this.bmsCount = this.config['bms device'] || 1;
+        this.updateInterval = (this.config['update_interval'] || 5) * 1000;
 
-		// The adapters config (in the instance object everything under the attribute "native") is accessible via
-		// this.config:
-		this.log.info("config serial adapter: " + this.config["serial adapter"]);
-		this.log.info("config bms device: " + this.config["bms device"]);
+        this.log.info(`Using serial adapter: ${serialAdapter}`);
+        //this.log.info(`Number of BMS devices: ${this.bmsCount}`);
+        this.log.info(`Update interval set to: ${this.updateInterval / 1000} seconds`);
 
-		/*
-		For every state in the system there has to be also an object of type state
-		Here a simple template for a boolean variable named "testVariable"
-		Because every adapter instance uses its own unique namespace variable names can't collide with other adapters variables
-		*/
-		await this.setObjectNotExistsAsync("testVariable", {
-			type: "state",
-			common: {
-				name: "testVariable",
-				type: "boolean",
-				role: "indicator",
-				read: true,
-				write: true,
-			},
-			native: {},
-		});
+        if (serialAdapter.startsWith("tcp://")) {
+            this.log.info("Using TCP connection for serial data");
+            await this.connectTcp(serialAdapter);
+        } else {
+            await this.connectSerial(serialAdapter);
+        }
+    }
 
-		// In order to get state updates, you need to subscribe to them. The following line adds a subscription for our variable we have created above.
-		this.subscribeStates("testVariable");
-		// You can also add a subscription for multiple states. The following line watches all states starting with "lights."
-		// this.subscribeStates("lights.*");
-		// Or, if you really must, you can also watch all states. Don't do this if you don't need to. Otherwise this will cause a lot of unnecessary load on the system:
-		// this.subscribeStates("*");
+    async connectTcp(serialAdapter) {
+        try {
+            const [_, host, port] = serialAdapter.match(/tcp:\/\/(.*):(\d+)/);
+            this.log.info(`Connecting to TCP serial: ${host}:${port}`);
 
-		/*
-			setState examples
-			you will notice that each setState will cause the stateChange event to fire (because of above subscribeStates cmd)
-		*/
-		// the variable testVariable is set to true as command (ack=false)
-		await this.setStateAsync("testVariable", true);
+            this.socket = new net.Socket();
+            this.socket.connect(parseInt(port), host, () => {
+                this.log.info(`Connected to ${host}:${port}`);
+            });
 
-		// same thing, but the value is flagged "ack"
-		// ack should be always set to true if the value is received from or acknowledged from the target system
-		await this.setStateAsync("testVariable", { val: true, ack: true });
+            this.socket.on('data', (data) => {
+                this.processStream(data);
+            });
 
-		// same thing, but the state is deleted after 30s (getState will return null afterwards)
-		await this.setStateAsync("testVariable", { val: true, ack: true, expire: 30 });
+            this.socket.on('error', (err) => {
+                this.log.error(`TCP connection error: ${err.message}`);
+            });
 
-		// examples for the checkPassword/checkGroup functions
-		let result = await this.checkPasswordAsync("admin", "iobroker");
-		this.log.info("check user admin pw iobroker: " + result);
+            this.socket.on('close', () => {
+                this.log.warn("TCP connection closed, retrying...");
+                setTimeout(() => this.connectTcp(serialAdapter), 5000);
+            });
+        } catch (error) {
+            this.log.error(`TCP connection failed: ${error.message}`);
+        }
+    }
 
-		result = await this.checkGroupAsync("admin", "admin");
-		this.log.info("check group user admin group admin: " + result);
-	}
+    async connectSerial(serialAdapter) {
+        try {
+            this.serialPort = new SerialPort({
+                path: serialAdapter,
+                baudRate: 19200
+            });
 
-	/**
-	 * Is called when adapter shuts down - callback has to be called under any circumstances!
-	 * @param {() => void} callback
-	 */
-	onUnload(callback) {
-		try {
-			// Here you must clear all timeouts or intervals that may still be active
-			// clearTimeout(timeout1);
-			// clearTimeout(timeout2);
-			// ...
-			// clearInterval(interval1);
+            this.serialPort.on('data', (data) => {
+                this.processStream(data);
+            });
 
-			callback();
-		} catch (e) {
-			callback();
-		}
-	}
+            this.serialPort.on('error', (err) => {
+                this.log.error(`Serial port error: ${err.message}`);
+            });
+        } catch (error) {
+            this.log.error(`Failed to open serial port: ${error.message}`);
+        }
+    }
 
-	// If you need to react to object changes, uncomment the following block and the corresponding line in the constructor.
-	// You also need to subscribe to the objects with `this.subscribeObjects`, similar to `this.subscribeStates`.
-	// /**
-	//  * Is called if a subscribed object changes
-	//  * @param {string} id
-	//  * @param {ioBroker.Object | null | undefined} obj
-	//  */
-	// onObjectChange(id, obj) {
-	// 	if (obj) {
-	// 		// The object was changed
-	// 		this.log.info(`object ${id} changed: ${JSON.stringify(obj)}`);
-	// 	} else {
-	// 		// The object was deleted
-	// 		this.log.info(`object ${id} deleted`);
-	// 	}
-	// }
+    processStream(data) {
+        for (const byte of data) {
+            this.buffer.push(byte);
 
-	/**
-	 * Is called if a subscribed state changes
-	 * @param {string} id
-	 * @param {ioBroker.State | null | undefined} state
-	 */
-	onStateChange(id, state) {
-		if (state) {
-			// The state was changed
-			this.log.info(`state ${id} changed: ${state.val} (ack = ${state.ack})`);
-		} else {
-			// The state was deleted
-			this.log.info(`state ${id} deleted`);
-		}
-	}
+            if (this.buffer.length >= 5) {
+                if (!this.isValidHeader(this.buffer)) {
+                    this.buffer.shift();
+                    continue;
+                }
 
-	// If you need to accept messages in your adapter, uncomment the following block and the corresponding line in the constructor.
-	// /**
-	//  * Some message was sent to this instance over message box. Used by email, pushover, text2speech, ...
-	//  * Using this method requires "common.messagebox" property to be set to true in io-package.json
-	//  * @param {ioBroker.Message} obj
-	//  */
-	// onMessage(obj) {
-	// 	if (typeof obj === "object" && obj.message) {
-	// 		if (obj.command === "send") {
-	// 			// e.g. send email or pushover or whatever
-	// 			this.log.info("send command");
+                const expectedLength = this.getExpectedLength(this.buffer);
+                if (this.buffer.length >= expectedLength) {
+                    if (this.validateCRC(this.buffer, expectedLength)) {
+                        this.processPacket(Buffer.from(this.buffer.slice(0, expectedLength)));
+                    }
+                    this.buffer = [];
+                }
+            }
+        }
+    }
 
-	// 			// Send response in callback if required
-	// 			if (obj.callback) this.sendTo(obj.from, obj.command, "Message received", obj.callback);
-	// 		}
-	// 	}
-	// }
+    async onUnload(callback) {
+        try {
+            this.log.info("Cleaning up before shutdown...");
 
+            if (this.serialPort) {
+                this.log.info("Closing serial connection...");
+                this.serialPort.close();
+                this.serialPort = null;
+            }
+            if (this.socket) {
+                this.log.info("Closing TCP connection...");
+                this.socket.destroy();
+                this.socket = null;
+            }
+
+            this.buffer = [];
+
+            callback();
+        } catch (error) {
+            this.log.error(`Error during unload: ${error.message}`);
+            callback();
+        }
+    }
+
+    onStateChange(id, state) {
+        if (state) {
+            this.log.info(`State ${id} geändert: ${state.val} (ack = ${state.ack})`);
+        } else {
+            this.log.info(`State ${id} gelöscht`);
+        }
+    }
+
+    isValidHeader(buffer) {
+        return (
+            buffer[0] >= 0x01 &&
+            buffer[0] <= 0x10 &&
+            buffer[1] === 0x04 &&
+            (buffer[2] === 0x24 || buffer[2] === 0x34)
+        );
+    }
+
+    getExpectedLength(buffer) {
+        return buffer[2] === 0x24 ? 41 : 57;
+    }
+
+    validateCRC(buffer, length) {
+        const receivedCRC = (buffer[length - 1] << 8) | buffer[length - 2];
+        const calculatedCRC = this.calculateModbusCRC(buffer.slice(0, length - 2));
+        return receivedCRC === calculatedCRC;
+    }
+
+    calculateModbusCRC(data) {
+        let crc = 0xffff;
+        for (let i = 0; i < data.length; i++) {
+            crc ^= data[i];
+            for (let j = 0; j < 8; j++) {
+                if (crc & 0x0001) {
+                    crc = (crc >> 1) ^ 0xa001;
+                } else {
+                    crc >>= 1;
+                }
+            }
+        }
+        return crc;
+    }
+
+    processPacket(buffer) {
+        const bmsIndex = buffer[0] - 0x01;
+        //if (bmsIndex < 0 || bmsIndex >= this.bmsCount) {
+        //    this.log.warn(`Invalid BMS index: ${bmsIndex}`);
+        //    return;
+        //}
+
+        let updates = {}
+
+        if (buffer[2] === 0x24) {
+
+            updates = {
+                [`bms.${bmsIndex}.pack_voltage`]: { value: buffer.readUInt16BE(3) / 100.0, unit: "V" },
+                [`bms.${bmsIndex}.current`]: { value: buffer.readInt16BE(5) / 100.0, unit: "A" },
+                [`bms.${bmsIndex}.remaining_capacity`]: { value: buffer.readUInt16BE(7) / 100.0, unit: "Ah" },
+                [`bms.${bmsIndex}.total_capacity`]: { value: buffer.readUInt16BE(9) / 100.0, unit: "AH" },
+                [`bms.${bmsIndex}.total_discharge_capacity`]: { value: buffer.readUInt16BE(11) / 0.1, unit: "AH" },
+                [`bms.${bmsIndex}.soc`]: { value: buffer.readUInt16BE(13) / 10.0, unit: "%" },
+                [`bms.${bmsIndex}.soh`]: { value: buffer.readUInt16BE(15) / 10.0, unit: "%" },
+                [`bms.${bmsIndex}.cycle_count`]: { value: buffer.readUInt16BE(17), unit: "cycles" },
+                [`bms.${bmsIndex}.average_cell_voltage`]: { value: buffer.readUInt16BE(19) / 1000.0, unit: "V" },
+                [`bms.${bmsIndex}.average_cell_temp`]: { value: buffer.readInt16BE(21) / 10.0 - 273.15, unit: "°C" },
+                [`bms.${bmsIndex}.max_cell_voltage`]: { value: buffer.readUInt16BE(23) / 1000.0, unit: "V" },
+                [`bms.${bmsIndex}.min_cell_voltage`]: { value: buffer.readUInt16BE(25) / 1000.0, unit: "V" },
+                [`bms.${bmsIndex}.max_cell_temp`]: { value: buffer.readUInt16BE(27) / 10.0 - 273.15, unit: "°C" },
+                [`bms.${bmsIndex}.min_cell_tem`]: { value: buffer.readUInt16BE(29) / 10.0 - 273.15, unit: "°C" },
+                [`bms.${bmsIndex}.maxdiscurt`]: { value: buffer.readUInt16BE(33) / 1.0, unit: "A" },
+                [`bms.${bmsIndex}.maxchgcurt`]: { value: buffer.readUInt16BE(35) / 1.0, unit: "A" },
+            };
+
+        } else if (buffer[2] === 0x34) {
+            updates = {
+
+                [`bms.${bmsIndex}.cell_1_voltage`]: { value: buffer.readUInt16BE(3) / 1000.0, unit: "V" },
+                [`bms.${bmsIndex}.cell_2_voltage`]: { value: buffer.readUInt16BE(5) / 1000.0, unit: "V" },
+                [`bms.${bmsIndex}.cell_3_voltage`]: { value: buffer.readUInt16BE(7) / 1000.0, unit: "V" },
+                [`bms.${bmsIndex}.cell_4_voltage`]: { value: buffer.readUInt16BE(9) / 1000.0, unit: "V" },
+                [`bms.${bmsIndex}.cell_5_voltage`]: { value: buffer.readUInt16BE(11) / 1000.0, unit: "V" },
+                [`bms.${bmsIndex}.cell_6_voltage`]: { value: buffer.readUInt16BE(13) / 1000.0, unit: "V" },
+                [`bms.${bmsIndex}.cell_7_voltage`]: { value: buffer.readUInt16BE(15) / 1000.0, unit: "V" },
+                [`bms.${bmsIndex}.cell_8_voltage`]: { value: buffer.readUInt16BE(17) / 1000.0, unit: "V" },
+                [`bms.${bmsIndex}.cell_9_voltage`]: { value: buffer.readUInt16BE(19) / 1000.0, unit: "V" },
+                [`bms.${bmsIndex}.cell_10_voltage`]: { value: buffer.readUInt16BE(21) / 1000.0, unit: "V" },
+                [`bms.${bmsIndex}.cell_11_voltage`]: { value: buffer.readUInt16BE(23) / 1000.0, unit: "V" },
+                [`bms.${bmsIndex}.cell_12_voltage`]: { value: buffer.readUInt16BE(25) / 1000.0, unit: "V" },
+                [`bms.${bmsIndex}.cell_13_voltage`]: { value: buffer.readUInt16BE(27) / 1000.0, unit: "V" },
+                [`bms.${bmsIndex}.cell_14_voltage`]: { value: buffer.readUInt16BE(29) / 1000.0, unit: "V" },
+                [`bms.${bmsIndex}.cell_15_voltage`]: { value: buffer.readUInt16BE(31) / 1000.0, unit: "V" },
+                [`bms.${bmsIndex}.cell_16_voltage`]: { value: buffer.readUInt16BE(33) / 1000.0, unit: "V" },
+                [`bms.${bmsIndex}.cell_temp_1`]: { value: buffer.readUInt16BE(35) / 10.0 - 273.15, unit: "°C" },
+                [`bms.${bmsIndex}.cell_temp_2`]: { value: buffer.readUInt16BE(37) / 10.0 - 273.15, unit: "°C" },
+                [`bms.${bmsIndex}.cell_temp_3`]: { value: buffer.readUInt16BE(39) / 10.0 - 273.15, unit: "°C" },
+                [`bms.${bmsIndex}.cell_temp_4`]: { value: buffer.readUInt16BE(41) / 10.0 - 273.15, unit: "°C" },
+                [`bms.${bmsIndex}.case_temp`]: { value: buffer.readUInt16BE(51) / 10.0 - 273.15, unit: "°C" },
+                [`bms.${bmsIndex}.power_temp`]: { value: buffer.readUInt16BE(53) / 10.0 - 273.15, unit: "°C" },
+            };
+        }
+
+        const now = Date.now();
+
+        for (const [key, {value, unit}] of Object.entries(updates)) {
+            if (!this.lastUpdate[key] || now - this.lastUpdate[key] >= this.updateInterval) {
+                this.lastUpdate[key] = now;
+                this.setObjectNotExistsAsync(key, {
+                    type: 'state',
+                    common: {
+                        name: key,
+                        type: 'number',
+                        role: 'value',
+                        unit: unit,
+                        read: true,
+                        write: false,
+                    },
+                    native: {},
+                });
+                this.setState(key, { val: value, ack: true });
+            }
+        }
+    }
 }
 
 if (require.main !== module) {
-	// Export the constructor in compact mode
-	/**
-	 * @param {Partial<utils.AdapterOptions>} [options={}]
-	 */
-	module.exports = (options) => new SeplosV3Sniffer(options);
+    module.exports = (options) => new SeplosV3Sniffer(options);
 } else {
-	// otherwise start the instance directly
-	new SeplosV3Sniffer();
-}
+    new SeplosV3Sniffer();}

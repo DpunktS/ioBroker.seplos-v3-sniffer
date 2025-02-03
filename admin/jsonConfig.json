@@ -3,15 +3,27 @@
 	"type": "panel",
 	"items": {
 		"serial adapter": {
+			"xs": 12,
+            "sm": 12,
+            "md": 12,
+            "lg": 12,
+            "xl": 12,
 			"type": "text",
-			"label": "serial adapter",
+			"label": "serial adapter (tcp://ip:2001, ttyS0)",
 			"default": "ttyS0",
 			"newLine": true
 		},
-		"bms device": {
+		"update_interval": {
+			"xs": 12,
+            "sm": 12,
+            "md": 12,
+            "lg": 12,
+            "xl": 12,
 			"type": "number",
-			"label": "bms device",
-			"default": 1,
+			"label": "update_interval (s)",
+			"min": 0,
+			"step": 1,
+			"default": 5,
 			"newLine": true
 		}
 	}

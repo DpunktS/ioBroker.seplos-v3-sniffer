@@ -31,20 +31,20 @@
 			"zh-cn": "seplos-v3-嗅探器"
 		},
 		"desc": {
-			"en": "seplos-v3-sniffer",
-			"de": "seplos-v3-sniffer",
-			"ru": "Seplos-V3-Sniffer",
-			"pt": "seplos-v3-sniffer",
-			"nl": "Seplos-V3-Sniffer",
-			"fr": "seplos-v3-renifleur",
-			"it": "Seplos-V3-Sniffer",
-			"es": "seplos-v3-sniffer",
-			"pl": "SEPLOS-V3-SNIFFER",
-			"uk": "seplos-v3-sniffer",
-			"zh-cn": "seplos-v3-嗅探器"
+			"en": "For reading Seplos BMS V3.0, 1-16 devices as a multipack via the internal RS485 interface",
+			"de": "Zum Lesen von Seplos BMS V3.0, 1-16 Geräten als Multipack über die interne RS485 Schnittstelle",
+			"ru": "Для чтения Seplos BMS V3.0, 1-16 устройств как мультипакет через внутренний интерфейс RS485",
+			"pt": "Para ler Seplos BMS V3.0, 1-16 dispositivos como um multipack através da interface interna RS485",
+			"nl": "Voor het lezen van Seplos BMS V3.0, 1-16 apparaten als multipack via de interne RS485 interface",
+			"fr": "Pour la lecture de Seplos BMS V3.0, 1-16 périphériques comme un multipack via l'interface interne RS485",
+			"it": "Per la lettura di Seplos BMS V3.0, 1-16 dispositivi come multipack tramite l'interfaccia interna RS485",
+			"es": "Para leer Seplos BMS V3.0, 1-16 dispositivos como multipack a través de la interfaz RS485 interna",
+			"pl": "Do odczytu Seplos BMS V3.0, 1-16 urządzeń jako opakowanie zbiorcze poprzez wewnętrzny interfejs RS485",
+			"uk": "Для читання Seplos BMS V3.0, 1-16 пристроїв як мультипак через внутрішній інтерфейс RS485",
+			"zh-cn": "用于通过内部RS485接口读取Seplos BMS V3.0,1-16设备作为多包件"
 		},
 		"authors": [
-			"DpunktS <scheiner@online.de>"
+			"DpunktS <leer@leer.de>"
 		],
 		"keywords": [
 			"seplos",

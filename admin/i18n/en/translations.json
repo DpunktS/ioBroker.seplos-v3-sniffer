@@ -1,5 +1,5 @@
 {
 	"seplos-v3-sniffer adapter settings": "Adapter settings for seplos-v3-sniffer",
-	"serial adapter": "serial adapter",
-	"bms device": "bms device"
+	"serial adapter (tcp://ip:2001, ttyS0)": "serial adapter (tcp://ip:2001, ttyS0)",
+	"update_interval (s)": "update interval (s)" 
 }
