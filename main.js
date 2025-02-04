@@ -20,7 +20,8 @@ class SeplosV3Sniffer extends utils.Adapter {
         this.buffer = [];
         //this.bmsCount = 1;
         this.lastUpdate = {};
-        this.updateInterval = 5000;
+        this.updateInterval = 5000; // Standardwert 5 Sekunden
+        this.reconnectTimeout = null; // Timeout für TCP-Reconnect
     }
 
     async onReady() {
@@ -60,7 +61,9 @@ class SeplosV3Sniffer extends utils.Adapter {
 
             this.socket.on('close', () => {
                 this.log.warn("TCP connection closed, retrying...");
-                setTimeout(() => this.connectTcp(serialAdapter), 5000);
+                //setTimeout(() => this.connectTcp(serialAdapter), 5000);
+                if (this.reconnectTimeout) clearTimeout(this.reconnectTimeout);
+                this.reconnectTimeout = setTimeout(() => this.connectTcp(serialAdapter), 5000);
             });
         } catch (error) {
             this.log.error(`TCP connection failed: ${error.message}`);
@@ -120,6 +123,10 @@ class SeplosV3Sniffer extends utils.Adapter {
                 this.log.info("Closing TCP connection...");
                 this.socket.destroy();
                 this.socket = null;
+            }
+            if (this.reconnectTimeout) {
+                clearTimeout(this.reconnectTimeout);
+                this.reconnectTimeout = null;
             }
 
             this.buffer = [];

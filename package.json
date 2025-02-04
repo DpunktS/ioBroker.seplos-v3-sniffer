@@ -9,6 +9,7 @@
   "homepage": "https://github.com/DpunktS/ioBroker.seplos-v3-sniffer",
   "license": "MIT",
   "keywords": [
+    "ioBroker",
     "seplos",
     "bms",
     "akku",
