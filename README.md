@@ -1,5 +1,4 @@
 ![Logo](admin/seplos-v3-sniffer.jpg)
-![Logo](admin/seplos-v3-sniffer.jpg)
 # ioBroker.seplos-v3-sniffer
 
 [![NPM version](https://img.shields.io/npm/v/iobroker.seplos-v3-sniffer.svg)](https://www.npmjs.com/package/iobroker.seplos-v3-sniffer)
@@ -13,6 +12,8 @@
 
 ## seplos-v3-sniffer adapter for ioBroker
 
+![seplos 4x](https://github.com/user-attachments/assets/9d710287-069d-44b6-acda-e96764642a33)
+![pinout](https://github.com/user-attachments/assets/1c8ec271-d20f-4a5d-baf4-87e5a98fc35a)
 
 
 ## Changelog
