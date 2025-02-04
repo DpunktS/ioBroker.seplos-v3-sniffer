@@ -12,10 +12,28 @@
 
 ## seplos-v3-sniffer adapter for ioBroker
 
+Dieser Adapter wurde entwickelt, um das Seplos V3 BMS in einer Multipack-Konfiguration auszulesen. Bei der V3-Generation fungiert das erste BMS als Modbus-Master, während alle anderen BMS als Slaves agieren. In dieser Konstellation ist es nicht mehr möglich, das BMS über Modbus von einem dritten Gerät aus anzusprechen, da in einem RS-485 Modbus-System keine zwei Master-Geräte existieren dürfen. Der Adapter erfasst die Kommunikation zwischen den Geräten passiv, wodurch die Kommunikation der einzelnen BMS nicht gestört wird. Er kann entweder über eine lokale Schnittstelle (z.B. ttyS0) oder über Ser2Net (tcp://ip:2001) kommunizieren. 
+
 ![seplos 4x](https://github.com/user-attachments/assets/9d710287-069d-44b6-acda-e96764642a33)
 
 ![pinout](https://github.com/user-attachments/assets/1c8ec271-d20f-4a5d-baf4-87e5a98fc35a)
 
+Die Ser2Net-Verbindung wurde mit ESPHome getestet.
+```
+external_components:
+  - source: github://oxan/esphome-stream-server
+
+uart:
+  tx_pin: GPIO17
+  rx_pin: GPIO16
+  baud_rate: 19200
+  rx_buffer_size: 2048
+
+stream_server:
+   uart_id: seplos
+   port: 2001
+   buffer_size: 2048
+```
 
 ## Changelog
 <!--
