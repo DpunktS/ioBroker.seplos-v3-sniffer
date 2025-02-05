@@ -24,6 +24,7 @@ external_components:
   - source: github://oxan/esphome-stream-server
 
 uart:
+- id: seplos
   tx_pin: GPIO17
   rx_pin: GPIO16
   baud_rate: 19200
