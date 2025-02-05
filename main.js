@@ -205,7 +205,7 @@ class SeplosV3Sniffer extends utils.Adapter {
                 [`bms.${bmsIndex}.max_cell_voltage`]: { value: buffer.readUInt16BE(23) / 1000.0, unit: "V" },
                 [`bms.${bmsIndex}.min_cell_voltage`]: { value: buffer.readUInt16BE(25) / 1000.0, unit: "V" },
                 [`bms.${bmsIndex}.max_cell_temp`]: { value: buffer.readUInt16BE(27) / 10.0 - 273.15, unit: "°C" },
-                [`bms.${bmsIndex}.min_cell_tem`]: { value: buffer.readUInt16BE(29) / 10.0 - 273.15, unit: "°C" },
+                [`bms.${bmsIndex}.min_cell_temp`]: { value: buffer.readUInt16BE(29) / 10.0 - 273.15, unit: "°C" },
                 [`bms.${bmsIndex}.maxdiscurt`]: { value: buffer.readUInt16BE(33) / 1.0, unit: "A" },
                 [`bms.${bmsIndex}.maxchgcurt`]: { value: buffer.readUInt16BE(35) / 1.0, unit: "A" },
             };
