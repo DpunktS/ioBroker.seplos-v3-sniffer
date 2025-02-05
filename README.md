@@ -14,6 +14,8 @@
 
 Dieser Adapter wurde entwickelt, um das Seplos V3 BMS in einer Multipack-Konfiguration auszulesen. Bei der V3-Generation fungiert das erste BMS als Modbus-Master, während alle anderen BMS als Slaves agieren. In dieser Konstellation ist es nicht mehr möglich, das BMS über Modbus von einem dritten Gerät aus anzusprechen, da in einem RS-485 Modbus-System keine zwei Master-Geräte existieren dürfen. Der Adapter erfasst die Kommunikation zwischen den Geräten passiv, wodurch die Kommunikation der einzelnen BMS nicht gestört wird. Er kann entweder über eine lokale Schnittstelle (z.B. ttyS0) oder über Ser2Net (tcp://ip:2001) kommunizieren. 
 
+Der Adapter erkennt automatisch die Anzahl der verfügbaren Geräte und erstellt die entsprechenden Datenpunkte. Das BMS übermittelt alle 200 ms einen neuen Datensatz. Auf der Konfigurationsseite des Adapters kann das Aktualisierungsintervall angepasst werden (Standardwert: 5 Sekunden).
+
 ![seplos 4x](https://github.com/user-attachments/assets/9d710287-069d-44b6-acda-e96764642a33)
 
 Es muss Pin 1/8, Pin 2/7 und Pin 5 mit eurem Adapter verbunden werden. In meinen Tests stellte sich heraus, dass der 120-Ohm-Abschlusswiderstand im Adapter nicht erforderlich ist. Auch im originalen Seplos V3 USB-Adapter ist kein Abschlusswiderstand vorhanden. Wenn nur ein BMS ausgelesen werden soll, ist es notwendig, Pin 6 am Anschluss (B) mit Pin 5 (GND) zu verbinden, damit der Master selbständig Daten senden kann.
@@ -37,6 +39,9 @@ stream_server:
    port: 2001
    buffer_size: 2048
 ```
+
+Aktuell werden folgende Datenpunkte ausgelesen:
+
 
 ## Changelog
 <!--
