@@ -41,7 +41,46 @@ stream_server:
 ```
 
 Aktuell werden folgende Datenpunkte ausgelesen:
-
+```
+pack_voltage
+current
+remaining_capacity
+total_capacity
+total_discharge_capacity
+soc
+soh
+cycle_count
+average_cell_voltage
+average_cell_temp
+max_cell_voltage
+min_cell_voltage
+max_cell_temp
+min_cell_temp
+maxdiscurt
+maxchgcurt
+cell_1_voltage
+cell_2_voltage
+cell_3_voltage
+cell_4_voltage
+cell_5_voltage
+cell_6_voltage
+cell_7_voltage
+cell_8_voltage
+cell_9_voltage
+cell_10_voltage
+cell_11_voltage
+cell_12_voltage
+cell_13_voltage
+cell_14_voltage
+cell_15_voltage
+cell_16_voltage
+cell_temp_1
+cell_temp_2
+cell_temp_3
+cell_temp_4
+case_temp
+power_temp
+```
 
 ## Changelog
 <!--
