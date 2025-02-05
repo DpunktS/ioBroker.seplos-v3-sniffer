@@ -16,6 +16,8 @@ Dieser Adapter wurde entwickelt, um das Seplos V3 BMS in einer Multipack-Konfigu
 
 ![seplos 4x](https://github.com/user-attachments/assets/9d710287-069d-44b6-acda-e96764642a33)
 
+Die Verbindung sollte wie folgt hergestellt werden: Pin 1 / 8, Pin 2 / 7 und Pin 5 mit eurem Adapter. In meinen Tests stellte sich heraus, dass der 120-Ohm-Abschlusswiderstand im Adapter nicht erforderlich ist. Auch im originalen Seplos V3 USB-Adapter ist kein Abschlusswiderstand vorhanden. Wenn nur ein BMS ausgelesen werden soll, ist es notwendig, Pin 6 am Anschluss (B) mit Pin 5 (GND) zu verbinden, damit der Master selbständig Daten senden kann.
+
 ![pinout](https://github.com/user-attachments/assets/1c8ec271-d20f-4a5d-baf4-87e5a98fc35a)
 
 Die Ser2Net-Verbindung wurde mit ESPHome getestet.
