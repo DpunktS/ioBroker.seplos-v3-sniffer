@@ -9,8 +9,8 @@
             "lg": 12,
             "xl": 12,
 			"type": "text",
-			"label": "serial adapter (tcp://ip:2001, ttyS0)",
-			"default": "ttyS0",
+			"label": "serial adapter (tcp://ip:2001, /dev/ttyS0)",
+			"default": "/dev/ttyS0",
 			"newLine": true
 		},
 		"update_interval": {

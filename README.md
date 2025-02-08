@@ -87,10 +87,10 @@ power_temp
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
 -->
-### 0.0.3 (2025-02-06)
+### **WORK IN PROGRESS**
 * (DpunktS) release
 
-### 0.0.2 (2025-02-05)
+### 0.0.1 (2025-02-05)
 * (DpunktS) initial release
 
 ## License

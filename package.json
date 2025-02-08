@@ -1,6 +1,6 @@
 {
   "name": "iobroker.seplos-v3-sniffer",
-  "version": "0.0.3",
+  "version": "0.0.1",
   "description": "seplos-v3-sniffer",
   "author": {
     "name": "DpunktS",
@@ -21,7 +21,7 @@
     "url": "https://github.com/DpunktS/ioBroker.seplos-v3-sniffer.git"
   },
   "engines": {
-    "node": ">= 20"
+    "node": ">= 18"
   },
   "dependencies": {
     "@iobroker/adapter-core": "^3.2.3",
