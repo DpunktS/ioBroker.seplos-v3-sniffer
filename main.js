@@ -241,26 +241,26 @@ class SeplosV3Sniffer extends utils.Adapter {
 		const now = Date.now();
 
 		for (const [key, { value, unit }] of Object.entries(updates)) {
-            if (!this.lastUpdate[key] || now - this.lastUpdate[key] >= this.updateInterval) {
-                this.lastUpdate[key] = now;
-                this.setObjectNotExistsAsync(key, {
-                    type: "state",
-                    common: {
-                        name: key,
-                        type: "number",
-                        role: "value",
-                        unit: unit,
-                        read: true,
-                        write: false,
-                    },
-                    native: {},
-                }).then(() => {
-                    this.setState(key, { val: value, ack: true });
-                }).catch((err) => {
-                    this.log.error(`Error creating state ${key}: ${err.message}`);
-                });
-            }
-        }
+			if (!this.lastUpdate[key] || now - this.lastUpdate[key] >= this.updateInterval) {
+				this.lastUpdate[key] = now;
+				this.setObjectNotExistsAsync(key, {
+					type: "state",
+					common: {
+						name: key,
+						type: "number",
+						role: "value",
+						unit: unit,
+						read: true,
+						write: false,
+					},
+					native: {},
+				}).then(() => {
+					this.setState(key, { val: value, ack: true });
+				}).catch((err) => {
+					this.log.error(`Error creating state ${key}: ${err.message}`);
+				});
+			}
+		}
 	}
 }
 
