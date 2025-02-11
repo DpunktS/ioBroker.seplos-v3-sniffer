@@ -88,9 +88,6 @@ power_temp
 	### **WORK IN PROGRESS**
 -->
 ### **WORK IN PROGRESS**
-* (DpunktS) release
-
-### 0.0.1 (2025-02-05)
 * (DpunktS) initial release
 
 ## License
