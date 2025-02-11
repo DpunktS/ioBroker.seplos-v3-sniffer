@@ -87,7 +87,9 @@ power_temp
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
 -->
-### 0.0.2 (2025-02-11)
+### **WORK IN PROGRESS**
+* (DpunktS) npm release
+### 0.0.1 (2025-01-11)
 * (DpunktS) initial release
 
 ## License
