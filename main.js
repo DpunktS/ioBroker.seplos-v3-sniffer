@@ -32,18 +32,18 @@ class SeplosV3Sniffer extends utils.Adapter {
         this.log.info(`Update interval set to: ${this.updateInterval / 1000} seconds`);
 
         // Verbindung-Status-Objekt erstellen
-        this.setObjectNotExistsAsync("info.connection", {
-            type: "state",
+        this.setObjectNotExistsAsync('info.connection', {
+            type: 'state',
             common: {
-                name: "Adapter connection status",
-                type: "boolean",
-                role: "indicator.connected",
+                name: 'Adapter connection status',
+                type: 'boolean',
+                role: 'indicator.connected',
                 read: true,
-                write: false
+                write: false,
             },
-            native: {}
+            native: {},
         }).then(() => {
-            this.setState("info.connection", false, true);
+            this.setState('info.connection', false, true);
         });
 
         if (serialAdapter.startsWith('tcp://')) {
@@ -55,7 +55,7 @@ class SeplosV3Sniffer extends utils.Adapter {
         // Intervall zur Überprüfung der Daten
         this.dataCheckInterval = setInterval(() => {
             if (Date.now() - this.lastDataReceived > this.dataTimeout) {
-                this.setState("info.connection", false, true);
+                this.setState('info.connection', false, true);
             }
         }, 5000);
     }
@@ -153,7 +153,7 @@ class SeplosV3Sniffer extends utils.Adapter {
                 clearInterval(this.dataCheckInterval);
                 this.dataCheckInterval = null;
             }
-            this.setState("info.connection", false, true);
+            this.setState('info.connection', false, true);
 
             this.buffer = [];
 
@@ -205,10 +205,10 @@ class SeplosV3Sniffer extends utils.Adapter {
 
     processPacket(buffer) {
         const bmsIndex = buffer[0] - 0x01;
-        
+
         if (bmsIndex === 0) {
             this.lastDataReceived = Date.now();
-            this.setState("info.connection", true, true);
+            this.setState('info.connection', true, true);
         }
 
         let updates = {};
