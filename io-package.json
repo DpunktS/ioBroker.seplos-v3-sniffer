@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "seplos-v3-sniffer",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "news": {
+      "0.0.3": {
+        "en": "bugfix",
+        "de": "fehlerbehebung",
+        "ru": "исправления",
+        "pt": "correção de erros",
+        "nl": "bugfix",
+        "fr": "correction du bug",
+        "it": "bugfix",
+        "es": "bugfix",
+        "pl": "bugfix",
+        "uk": "панчохи",
+        "zh-cn": "错误修正"
+      },
       "0.0.2": {
         "en": "npm release",
         "de": "npm release",
