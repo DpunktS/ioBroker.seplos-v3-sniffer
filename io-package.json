@@ -15,45 +15,6 @@
         "pl": "bugfix",
         "uk": "панчохи",
         "zh-cn": "错误修正"
-      },
-      "0.0.3": {
-        "en": "bugfix",
-        "de": "fehlerbehebung",
-        "ru": "исправления",
-        "pt": "correção de erros",
-        "nl": "bugfix",
-        "fr": "correction du bug",
-        "it": "bugfix",
-        "es": "bugfix",
-        "pl": "bugfix",
-        "uk": "панчохи",
-        "zh-cn": "错误修正"
-      },
-      "0.0.2": {
-        "en": "npm release",
-        "de": "npm release",
-        "ru": "npm релиз",
-        "pt": "liberação npm",
-        "nl": "npm release",
-        "fr": "npm libération",
-        "it": "npm rilascio",
-        "es": "npm de liberación",
-        "pl": "uwolnienie npm",
-        "uk": "npm реліз",
-        "zh-cn": "npm 发布"
-      },
-      "0.0.1": {
-        "en": "initial release",
-        "de": "Erstveröffentlichung",
-        "ru": "Начальная версия",
-        "pt": "lançamento inicial",
-        "nl": "Eerste uitgave",
-        "fr": "Première version",
-        "it": "Versione iniziale",
-        "es": "Versión inicial",
-        "pl": "Pierwsze wydanie",
-        "uk": "Початкова версія",
-        "zh-cn": "首次出版"
       }
     },
     "titleLang": {
