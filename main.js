@@ -1,7 +1,6 @@
 'use strict';
 
 const { SerialPort } = require('serialport');
-//const { ReadlineParser } = require("@serialport/parser-readline");
 const net = require('net');
 const utils = require('@iobroker/adapter-core');
 
@@ -18,20 +17,34 @@ class SeplosV3Sniffer extends utils.Adapter {
         this.serialPort = null;
         this.socket = null;
         this.buffer = [];
-        //this.bmsCount = 1;
         this.lastUpdate = {};
         this.updateInterval = 5000; // Standardwert 5 Sekunden
         this.reconnectTimeout = null; // Timeout für TCP-Reconnect
+        this.lastDataReceived = Date.now(); // Letzte empfangene Daten
+        this.dataTimeout = 10000; // Timeout für Datenprüfung (10 Sekunden)
+        this.dataCheckInterval = null; // Intervall für Datenprüfung
     }
 
     async onReady() {
         const serialAdapter = this.config['serial adapter'] || '/dev/ttyS0';
-        //this.bmsCount = this.config["bms device"] || 1;
         this.updateInterval = (this.config['update_interval'] || 5) * 1000;
-
         this.log.info(`Using serial adapter: ${serialAdapter}`);
-        //this.log.info(`Number of BMS devices: ${this.bmsCount}`);
         this.log.info(`Update interval set to: ${this.updateInterval / 1000} seconds`);
+
+        // Verbindung-Status-Objekt erstellen
+        this.setObjectNotExistsAsync("info.connection", {
+            type: "state",
+            common: {
+                name: "Adapter connection status",
+                type: "boolean",
+                role: "indicator.connected",
+                read: true,
+                write: false
+            },
+            native: {}
+        }).then(() => {
+            this.setState("info.connection", false, true);
+        });
 
         if (serialAdapter.startsWith('tcp://')) {
             this.log.info('Using TCP connection for serial data');
@@ -39,6 +52,12 @@ class SeplosV3Sniffer extends utils.Adapter {
         } else {
             await this.connectSerial(serialAdapter);
         }
+        // Intervall zur Überprüfung der Daten
+        this.dataCheckInterval = setInterval(() => {
+            if (Date.now() - this.lastDataReceived > this.dataTimeout) {
+                this.setState("info.connection", false, true);
+            }
+        }, 5000);
     }
 
     async connectTcp(serialAdapter) {
@@ -130,6 +149,11 @@ class SeplosV3Sniffer extends utils.Adapter {
                 clearTimeout(this.reconnectTimeout);
                 this.reconnectTimeout = null;
             }
+            if (this.dataCheckInterval) {
+                clearInterval(this.dataCheckInterval);
+                this.dataCheckInterval = null;
+            }
+            this.setState("info.connection", false, true);
 
             this.buffer = [];
 
@@ -181,10 +205,11 @@ class SeplosV3Sniffer extends utils.Adapter {
 
     processPacket(buffer) {
         const bmsIndex = buffer[0] - 0x01;
-        //if (bmsIndex < 0 || bmsIndex >= this.bmsCount) {
-        //    this.log.warn(`Invalid BMS index: ${bmsIndex}`);
-        //    return;
-        //}
+        
+        if (bmsIndex === 0) {
+            this.lastDataReceived = Date.now();
+            this.setState("info.connection", true, true);
+        }
 
         let updates = {};
 
