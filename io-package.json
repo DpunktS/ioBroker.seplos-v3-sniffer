@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "seplos-v3-sniffer",
-    "version": "0.0.4",
+    "version": "0.0.5",
     "news": {
+      "0.0.5": {
+        "en": "connections status added",
+        "de": "verbindung status hinzugefügt",
+        "ru": "статус соединения добавлен",
+        "pt": "status de conexões adicionado",
+        "nl": "verbindingsstatus toegevoegd",
+        "fr": "état des connexions ajouté",
+        "it": "stato delle connessioni aggiunto",
+        "es": "estado de conexión añadido",
+        "pl": "dodano status połączeń",
+        "uk": "додано статус підключень",
+        "zh-cn": "连接状态已添加"
+      },
       "0.0.4": {
         "en": "bugfix",
         "de": "fehlerbehebung",
