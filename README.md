@@ -12,6 +12,8 @@
 
 ## seplos-v3-sniffer adapter for ioBroker
 
+[www.seplos.com](https://www.seplos.com/)
+
 Dieser Adapter wurde entwickelt, um das Seplos V3 BMS in einer Multipack-Konfiguration auszulesen. Bei der V3-Generation fungiert das erste BMS als Modbus-Master, während alle anderen BMS als Slaves agieren. In dieser Konstellation ist es nicht mehr möglich, das BMS über Modbus von einem dritten Gerät aus anzusprechen, da in einem RS-485 Modbus-System keine zwei Master-Geräte existieren dürfen. Der Adapter erfasst die Kommunikation zwischen den Geräten passiv, wodurch die Kommunikation der einzelnen BMS nicht gestört wird. Er kann entweder über eine lokale Schnittstelle (z.B. ttyS0) oder über Ser2Net (tcp://ip:2001) kommunizieren. 
 
 Der Adapter erkennt automatisch die Anzahl der verfügbaren Geräte und erstellt die entsprechenden Datenpunkte. Das BMS übermittelt alle 200 ms einen neuen Datensatz. Auf der Konfigurationsseite des Adapters kann das Aktualisierungsintervall angepasst werden (Standardwert: 5 Sekunden).
@@ -87,6 +89,9 @@ power_temp
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
 -->
+### **WORK IN PROGRESS**
+* (DpunktS) adapter-dev 1.0.1 > 1.3.0
+
 ### 0.0.5 (2025-02-12)
 * (DpunktS) connections status added
 
