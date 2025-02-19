@@ -10,7 +10,6 @@
             "xl": 12,
 			"type": "text",
 			"label": "serial adapter (tcp://ip:2001, /dev/ttyS0)",
-			"default": "/dev/ttyS0",
 			"newLine": true
 		},
 		"update_interval": {
@@ -23,7 +22,6 @@
 			"label": "update_interval (s)",
 			"min": 0,
 			"step": 1,
-			"default": 5,
 			"newLine": true
 		}
 	}

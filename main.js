@@ -12,8 +12,8 @@ class SeplosV3Sniffer extends utils.Adapter {
         });
 
         this.on('ready', this.onReady.bind(this));
-        this.on('stateChange', this.onStateChange.bind(this));
         this.on('unload', this.onUnload.bind(this));
+        this.knownObjects = new Set(); // cache for known objects
         this.serialPort = null;
         this.socket = null;
         this.buffer = [];
@@ -27,24 +27,20 @@ class SeplosV3Sniffer extends utils.Adapter {
 
     async onReady() {
         const serialAdapter = this.config['serial adapter'] || '/dev/ttyS0';
-        this.updateInterval = (this.config['update_interval'] || 5) * 1000;
+        this.updateInterval = (Number(this.config['update_interval']) || 5) * 1000;
+
+        // Reset the connection indicator during startup
+        this.setState('info.connection', false, true);
+
+        if (!this.validateSerialAdapter(serialAdapter)) {
+            this.log.error(
+                `Invalid input for the serial adapter: "${serialAdapter}". Please enter a valid address (tcp://ip:port, tcp://name.de:port, /dev/tty*, COM*).`,
+            );
+            return; // Prevents the adapter from crashing
+        }
+
         this.log.info(`Using serial adapter: ${serialAdapter}`);
         this.log.info(`Update interval set to: ${this.updateInterval / 1000} seconds`);
-
-        // Verbindung-Status-Objekt erstellen
-        this.setObjectNotExistsAsync('info.connection', {
-            type: 'state',
-            common: {
-                name: 'Adapter connection status',
-                type: 'boolean',
-                role: 'indicator.connected',
-                read: true,
-                write: false,
-            },
-            native: {},
-        }).then(() => {
-            this.setState('info.connection', false, true);
-        });
 
         if (serialAdapter.startsWith('tcp://')) {
             this.log.info('Using TCP connection for serial data');
@@ -53,11 +49,19 @@ class SeplosV3Sniffer extends utils.Adapter {
             await this.connectSerial(serialAdapter);
         }
         // Intervall zur Überprüfung der Daten
-        this.dataCheckInterval = setInterval(() => {
+        this.dataCheckInterval = this.setInterval(() => {
             if (Date.now() - this.lastDataReceived > this.dataTimeout) {
                 this.setState('info.connection', false, true);
             }
         }, 5000);
+    }
+
+    validateSerialAdapter(serialAdapter) {
+        const tcpRegex = /^tcp:\/\/([a-zA-Z0-9.-]+):(\d+)$/; // tcp://ip:port oder tcp://name.de:port
+        const devTtyRegex = /^\/dev\/tty[A-Za-z0-9]+$/; // /dev/tty*
+        const comRegex = /^COM\d+$/; // COM*
+
+        return tcpRegex.test(serialAdapter) || devTtyRegex.test(serialAdapter) || comRegex.test(serialAdapter);
     }
 
     async connectTcp(serialAdapter) {
@@ -82,9 +86,9 @@ class SeplosV3Sniffer extends utils.Adapter {
                 this.log.warn('TCP connection closed, retrying...');
                 //setTimeout(() => this.connectTcp(serialAdapter), 5000);
                 if (this.reconnectTimeout) {
-                    clearTimeout(this.reconnectTimeout);
+                    this.clearTimeout(this.reconnectTimeout);
                 }
-                this.reconnectTimeout = setTimeout(() => this.connectTcp(serialAdapter), 5000);
+                this.reconnectTimeout = this.setTimeout(() => this.connectTcp(serialAdapter), 5000);
             });
         } catch (error) {
             this.log.error(`TCP connection failed: ${error.message}`);
@@ -134,7 +138,8 @@ class SeplosV3Sniffer extends utils.Adapter {
     async onUnload(callback) {
         try {
             this.log.info('Cleaning up before shutdown...');
-
+            this.buffer = [];
+            this.knownObjects.clear();
             if (this.serialPort) {
                 this.log.info('Closing serial connection...');
                 this.serialPort.close();
@@ -146,29 +151,20 @@ class SeplosV3Sniffer extends utils.Adapter {
                 this.socket = null;
             }
             if (this.reconnectTimeout) {
-                clearTimeout(this.reconnectTimeout);
+                this.clearTimeout(this.reconnectTimeout);
                 this.reconnectTimeout = null;
             }
             if (this.dataCheckInterval) {
-                clearInterval(this.dataCheckInterval);
+                this.clearInterval(this.dataCheckInterval);
                 this.dataCheckInterval = null;
             }
             this.setState('info.connection', false, true);
-
-            this.buffer = [];
+            this.log.info('Shutdown complete.');
 
             callback();
         } catch (error) {
             this.log.error(`Error during unload: ${error.message}`);
             callback();
-        }
-    }
-
-    onStateChange(id, state) {
-        if (state) {
-            this.log.info(`State ${id} geändert: ${state.val} (ack = ${state.ack})`);
-        } else {
-            this.log.info(`State ${id} gelöscht`);
         }
     }
 
@@ -203,85 +199,108 @@ class SeplosV3Sniffer extends utils.Adapter {
         return crc;
     }
 
-    processPacket(buffer) {
+    async ensureObjectExists(id, { type, common, native = {} }) {
+        try {
+            const obj = await this.getObjectAsync(id);
+            if (!obj) {
+                await this.setObjectNotExistsAsync(id, {
+                    type,
+                    common,
+                    native,
+                });
+            }
+            this.knownObjects.add(id);
+        } catch (err) {
+            this.log.error(`Error creating state ${id}: ${err.message}`);
+            this.knownObjects.delete(id); // Falls ein Fehler auftritt, wird das Objekt nicht als bekannt gespeichert
+        }
+    }
+
+    async processPacket(buffer) {
         const bmsIndex = buffer[0] - 0x01;
+        const bmsFolder = `bms_${bmsIndex}`;
 
         if (bmsIndex === 0) {
             this.lastDataReceived = Date.now();
             this.setState('info.connection', true, true);
         }
 
+        // Stelle sicher, dass der BMS-Ordner existiert
+        await this.ensureObjectExists(bmsFolder, {
+            type: 'channel',
+            common: { name: `bms ${bmsIndex}` },
+            native: {},
+        });
+
+        const now = Date.now();
         let updates = {};
 
         if (buffer[2] === 0x24) {
             updates = {
-                [`bms.${bmsIndex}.pack_voltage`]: { value: buffer.readUInt16BE(3) / 100.0, unit: 'V' },
-                [`bms.${bmsIndex}.current`]: { value: buffer.readInt16BE(5) / 100.0, unit: 'A' },
-                [`bms.${bmsIndex}.remaining_capacity`]: { value: buffer.readUInt16BE(7) / 100.0, unit: 'Ah' },
-                [`bms.${bmsIndex}.total_capacity`]: { value: buffer.readUInt16BE(9) / 100.0, unit: 'AH' },
-                [`bms.${bmsIndex}.total_discharge_capacity`]: { value: buffer.readUInt16BE(11) / 0.1, unit: 'AH' },
-                [`bms.${bmsIndex}.soc`]: { value: buffer.readUInt16BE(13) / 10.0, unit: '%' },
-                [`bms.${bmsIndex}.soh`]: { value: buffer.readUInt16BE(15) / 10.0, unit: '%' },
-                [`bms.${bmsIndex}.cycle_count`]: { value: buffer.readUInt16BE(17), unit: 'cycles' },
-                [`bms.${bmsIndex}.average_cell_voltage`]: { value: buffer.readUInt16BE(19) / 1000.0, unit: 'V' },
-                [`bms.${bmsIndex}.average_cell_temp`]: { value: buffer.readInt16BE(21) / 10.0 - 273.15, unit: '°C' },
-                [`bms.${bmsIndex}.max_cell_voltage`]: { value: buffer.readUInt16BE(23) / 1000.0, unit: 'V' },
-                [`bms.${bmsIndex}.min_cell_voltage`]: { value: buffer.readUInt16BE(25) / 1000.0, unit: 'V' },
-                [`bms.${bmsIndex}.max_cell_temp`]: { value: buffer.readUInt16BE(27) / 10.0 - 273.15, unit: '°C' },
-                [`bms.${bmsIndex}.min_cell_temp`]: { value: buffer.readUInt16BE(29) / 10.0 - 273.15, unit: '°C' },
-                [`bms.${bmsIndex}.maxdiscurt`]: { value: buffer.readUInt16BE(33) / 1.0, unit: 'A' },
-                [`bms.${bmsIndex}.maxchgcurt`]: { value: buffer.readUInt16BE(35) / 1.0, unit: 'A' },
+                [`${bmsFolder}.pack_voltage`]: { value: buffer.readUInt16BE(3) / 100.0, unit: 'V' },
+                [`${bmsFolder}.current`]: { value: buffer.readInt16BE(5) / 100.0, unit: 'A' },
+                [`${bmsFolder}.remaining_capacity`]: { value: buffer.readUInt16BE(7) / 100.0, unit: 'Ah' },
+                [`${bmsFolder}.total_capacity`]: { value: buffer.readUInt16BE(9) / 100.0, unit: 'AH' },
+                [`${bmsFolder}.total_discharge_capacity`]: { value: buffer.readUInt16BE(11) / 0.1, unit: 'AH' },
+                [`${bmsFolder}.soc`]: { value: buffer.readUInt16BE(13) / 10.0, unit: '%' },
+                [`${bmsFolder}.soh`]: { value: buffer.readUInt16BE(15) / 10.0, unit: '%' },
+                [`${bmsFolder}.cycle_count`]: { value: buffer.readUInt16BE(17), unit: 'cycles' },
+                [`${bmsFolder}.average_cell_voltage`]: { value: buffer.readUInt16BE(19) / 1000.0, unit: 'V' },
+                [`${bmsFolder}.average_cell_temp`]: { value: buffer.readInt16BE(21) / 10.0 - 273.15, unit: '°C' },
+                [`${bmsFolder}.max_cell_voltage`]: { value: buffer.readUInt16BE(23) / 1000.0, unit: 'V' },
+                [`${bmsFolder}.min_cell_voltage`]: { value: buffer.readUInt16BE(25) / 1000.0, unit: 'V' },
+                [`${bmsFolder}.max_cell_temp`]: { value: buffer.readUInt16BE(27) / 10.0 - 273.15, unit: '°C' },
+                [`${bmsFolder}.min_cell_temp`]: { value: buffer.readUInt16BE(29) / 10.0 - 273.15, unit: '°C' },
+                [`${bmsFolder}.maxdiscurt`]: { value: buffer.readUInt16BE(33) / 1.0, unit: 'A' },
+                [`${bmsFolder}.maxchgcurt`]: { value: buffer.readUInt16BE(35) / 1.0, unit: 'A' },
             };
         } else if (buffer[2] === 0x34) {
             updates = {
-                [`bms.${bmsIndex}.cell_1_voltage`]: { value: buffer.readUInt16BE(3) / 1000.0, unit: 'V' },
-                [`bms.${bmsIndex}.cell_2_voltage`]: { value: buffer.readUInt16BE(5) / 1000.0, unit: 'V' },
-                [`bms.${bmsIndex}.cell_3_voltage`]: { value: buffer.readUInt16BE(7) / 1000.0, unit: 'V' },
-                [`bms.${bmsIndex}.cell_4_voltage`]: { value: buffer.readUInt16BE(9) / 1000.0, unit: 'V' },
-                [`bms.${bmsIndex}.cell_5_voltage`]: { value: buffer.readUInt16BE(11) / 1000.0, unit: 'V' },
-                [`bms.${bmsIndex}.cell_6_voltage`]: { value: buffer.readUInt16BE(13) / 1000.0, unit: 'V' },
-                [`bms.${bmsIndex}.cell_7_voltage`]: { value: buffer.readUInt16BE(15) / 1000.0, unit: 'V' },
-                [`bms.${bmsIndex}.cell_8_voltage`]: { value: buffer.readUInt16BE(17) / 1000.0, unit: 'V' },
-                [`bms.${bmsIndex}.cell_9_voltage`]: { value: buffer.readUInt16BE(19) / 1000.0, unit: 'V' },
-                [`bms.${bmsIndex}.cell_10_voltage`]: { value: buffer.readUInt16BE(21) / 1000.0, unit: 'V' },
-                [`bms.${bmsIndex}.cell_11_voltage`]: { value: buffer.readUInt16BE(23) / 1000.0, unit: 'V' },
-                [`bms.${bmsIndex}.cell_12_voltage`]: { value: buffer.readUInt16BE(25) / 1000.0, unit: 'V' },
-                [`bms.${bmsIndex}.cell_13_voltage`]: { value: buffer.readUInt16BE(27) / 1000.0, unit: 'V' },
-                [`bms.${bmsIndex}.cell_14_voltage`]: { value: buffer.readUInt16BE(29) / 1000.0, unit: 'V' },
-                [`bms.${bmsIndex}.cell_15_voltage`]: { value: buffer.readUInt16BE(31) / 1000.0, unit: 'V' },
-                [`bms.${bmsIndex}.cell_16_voltage`]: { value: buffer.readUInt16BE(33) / 1000.0, unit: 'V' },
-                [`bms.${bmsIndex}.cell_temp_1`]: { value: buffer.readUInt16BE(35) / 10.0 - 273.15, unit: '°C' },
-                [`bms.${bmsIndex}.cell_temp_2`]: { value: buffer.readUInt16BE(37) / 10.0 - 273.15, unit: '°C' },
-                [`bms.${bmsIndex}.cell_temp_3`]: { value: buffer.readUInt16BE(39) / 10.0 - 273.15, unit: '°C' },
-                [`bms.${bmsIndex}.cell_temp_4`]: { value: buffer.readUInt16BE(41) / 10.0 - 273.15, unit: '°C' },
-                [`bms.${bmsIndex}.case_temp`]: { value: buffer.readUInt16BE(51) / 10.0 - 273.15, unit: '°C' },
-                [`bms.${bmsIndex}.power_temp`]: { value: buffer.readUInt16BE(53) / 10.0 - 273.15, unit: '°C' },
+                [`${bmsFolder}.cell_1_voltage`]: { value: buffer.readUInt16BE(3) / 1000.0, unit: 'V' },
+                [`${bmsFolder}.cell_2_voltage`]: { value: buffer.readUInt16BE(5) / 1000.0, unit: 'V' },
+                [`${bmsFolder}.cell_3_voltage`]: { value: buffer.readUInt16BE(7) / 1000.0, unit: 'V' },
+                [`${bmsFolder}.cell_4_voltage`]: { value: buffer.readUInt16BE(9) / 1000.0, unit: 'V' },
+                [`${bmsFolder}.cell_5_voltage`]: { value: buffer.readUInt16BE(11) / 1000.0, unit: 'V' },
+                [`${bmsFolder}.cell_6_voltage`]: { value: buffer.readUInt16BE(13) / 1000.0, unit: 'V' },
+                [`${bmsFolder}.cell_7_voltage`]: { value: buffer.readUInt16BE(15) / 1000.0, unit: 'V' },
+                [`${bmsFolder}.cell_8_voltage`]: { value: buffer.readUInt16BE(17) / 1000.0, unit: 'V' },
+                [`${bmsFolder}.cell_9_voltage`]: { value: buffer.readUInt16BE(19) / 1000.0, unit: 'V' },
+                [`${bmsFolder}.cell_10_voltage`]: { value: buffer.readUInt16BE(21) / 1000.0, unit: 'V' },
+                [`${bmsFolder}.cell_11_voltage`]: { value: buffer.readUInt16BE(23) / 1000.0, unit: 'V' },
+                [`${bmsFolder}.cell_12_voltage`]: { value: buffer.readUInt16BE(25) / 1000.0, unit: 'V' },
+                [`${bmsFolder}.cell_13_voltage`]: { value: buffer.readUInt16BE(27) / 1000.0, unit: 'V' },
+                [`${bmsFolder}.cell_14_voltage`]: { value: buffer.readUInt16BE(29) / 1000.0, unit: 'V' },
+                [`${bmsFolder}.cell_15_voltage`]: { value: buffer.readUInt16BE(31) / 1000.0, unit: 'V' },
+                [`${bmsFolder}.cell_16_voltage`]: { value: buffer.readUInt16BE(33) / 1000.0, unit: 'V' },
+                [`${bmsFolder}.cell_temp_1`]: { value: buffer.readUInt16BE(35) / 10.0 - 273.15, unit: '°C' },
+                [`${bmsFolder}.cell_temp_2`]: { value: buffer.readUInt16BE(37) / 10.0 - 273.15, unit: '°C' },
+                [`${bmsFolder}.cell_temp_3`]: { value: buffer.readUInt16BE(39) / 10.0 - 273.15, unit: '°C' },
+                [`${bmsFolder}.cell_temp_4`]: { value: buffer.readUInt16BE(41) / 10.0 - 273.15, unit: '°C' },
+                [`${bmsFolder}.case_temp`]: { value: buffer.readUInt16BE(51) / 10.0 - 273.15, unit: '°C' },
+                [`${bmsFolder}.power_temp`]: { value: buffer.readUInt16BE(53) / 10.0 - 273.15, unit: '°C' },
             };
         }
 
-        const now = Date.now();
-
         for (const [key, { value, unit }] of Object.entries(updates)) {
-            if (!this.lastUpdate[key] || now - this.lastUpdate[key] >= this.updateInterval) {
+            if (
+                !this.lastUpdate[key] ||
+                now - this.lastUpdate[key] >= this.updateInterval ||
+                !this.knownObjects.has(key)
+            ) {
                 this.lastUpdate[key] = now;
-                this.setObjectNotExistsAsync(key, {
+                await this.ensureObjectExists(key, {
                     type: 'state',
                     common: {
                         name: key,
                         type: 'number',
                         role: 'value',
-                        unit: unit,
+                        unit,
                         read: true,
                         write: false,
                     },
-                    native: {},
-                })
-                    .then(() => {
-                        this.setState(key, { val: value, ack: true });
-                    })
-                    .catch(err => {
-                        this.log.error(`Error creating state ${key}: ${err.message}`);
-                    });
+                    native: {}
+                });
+                this.setState(key, { val: value, ack: true });
             }
         }
     }

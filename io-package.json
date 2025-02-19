@@ -70,7 +70,7 @@
       "zh-cn": "用于通过内部RS485接口读取Seplos BMS V3.0,1-16设备作为多包件"
     },
     "authors": [
-      "DpunktS <leer@leer.de>"
+      "DpunktS <dpunkts@online.de>"
     ],
     "keywords": [
       "seplos",
@@ -105,13 +105,36 @@
     ],
     "globalDependencies": [
       {
-        "admin": ">=7.0.23"
+        "admin": ">=7.4.10"
       }
     ]
   },
   "native": {
-    "serial adapter": "/dec/ttyS0"
+    "serial adapter": "/dev/ttyS0",
+    "update_interval": "5"
   },
   "objects": [],
-  "instanceObjects": []
+  "instanceObjects": [
+		{
+			"_id": "info",
+			"type": "channel",
+			"common": {
+				"name": "Information"
+			},
+			"native": {}
+		},
+		{
+			"_id": "info.connection",
+			"type": "state",
+			"common": {
+				"role": "indicator.connected",
+				"name": "Device or service connected",
+				"type": "boolean",
+				"read": true,
+				"write": false,
+				"def": false
+			},
+			"native": {}
+		}
+	]
 }

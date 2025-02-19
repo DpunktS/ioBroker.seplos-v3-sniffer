@@ -1,5 +1,5 @@
 {
 	"seplos-v3-sniffer adapter settings": "Налаштування адаптера для seplos-v3-sniffer",
-	"serial adapter (tcp://ip:2001, ttyS0)": "послідовний перехідник (tcp://ip:2001, ttyS0)",
-	"update_interval (s)": "інтервал оновлення (s)" 
+	"serial adapter": "послідовний перехідник (tcp://ip:2001, /dev/ttyS0)",
+	"update_interval": "інтервал оновлення (s)" 
 }

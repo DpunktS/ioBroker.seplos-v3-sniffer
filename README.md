@@ -14,17 +14,19 @@
 
 [www.seplos.com](https://www.seplos.com/)
 
-Dieser Adapter wurde entwickelt, um das Seplos V3 BMS in einer Multipack-Konfiguration auszulesen. Bei der V3-Generation fungiert das erste BMS als Modbus-Master, während alle anderen BMS als Slaves agieren. In dieser Konstellation ist es nicht mehr möglich, das BMS über Modbus von einem dritten Gerät aus anzusprechen, da in einem RS-485 Modbus-System keine zwei Master-Geräte existieren dürfen. Der Adapter erfasst die Kommunikation zwischen den Geräten passiv, wodurch die Kommunikation der einzelnen BMS nicht gestört wird. Er kann entweder über eine lokale Schnittstelle (z.B. ttyS0) oder über Ser2Net (tcp://ip:2001) kommunizieren. 
+This adapter was developed to read the Seplos V3 BMS in a multipack configuration. In the V3 generation, the first BMS acts as the Modbus master, while all other BMS act as slaves. In this configuration, it is no longer possible to access the BMS via Modbus from a third device, since two master devices cannot exist in an RS-485 Modbus system. The adapter passively detects the communication between the devices, which means that the communication of the individual BMS is not disrupted. It can communicate either via a local interface (e.g. /dec/ttyS0) or via Ser2Net (tcp://ip:2001).
 
-Der Adapter erkennt automatisch die Anzahl der verfügbaren Geräte und erstellt die entsprechenden Datenpunkte. Das BMS übermittelt alle 200 ms einen neuen Datensatz. Auf der Konfigurationsseite des Adapters kann das Aktualisierungsintervall angepasst werden (Standardwert: 5 Sekunden).
+The adapter automatically detects the number of available devices and creates the corresponding data points. The BMS transmits a new data set every 200 ms. The update interval can be adjusted on the adapter's configuration page (default value: 5 seconds).
 
 ![seplos 4x](https://github.com/user-attachments/assets/9d710287-069d-44b6-acda-e96764642a33)
 
-Es muss Pin 1/8, Pin 2/7 und Pin 5 mit eurem Adapter verbunden werden. In meinen Tests stellte sich heraus, dass der 120-Ohm-Abschlusswiderstand im Adapter nicht erforderlich ist. Auch im originalen Seplos V3 USB-Adapter ist kein Abschlusswiderstand vorhanden. Wenn nur ein BMS ausgelesen werden soll, ist es notwendig, Pin 6 am Anschluss (B) mit Pin 5 (GND) zu verbinden, damit der Master selbständig Daten senden kann.
+To establish a connection, pins 1/8 (B), 2/7 (A) and 5 (GND) must be connected to the RS485 adapter. Various RS485 adapters can be used, such as RS485 to USB or RS485 to TTL. It is important to check how the system has detected the respective adapter and enter the interface accordingly in "serial adapter" (e.g. /dev/ttyUSB0 or ​​/dev/ttyS0). If Ser2Net is used, the address tcp://ip:2001 should be entered. The Ser2Net server must be configured to provide the data in RAW format. An easy way is to use an ESP8266/ESP32 with ESPHome (see my example below).
+
+In my tests, I found that the 120 ohm terminator in the adapter is not necessary. There is also no terminator in the original Seplos V3 USB adapter. If only one BMS is to be read, it is necessary to connect pin 6 (B) to pin 5 (GND) so that the master can send data independently.
 
 ![pinout](https://github.com/user-attachments/assets/1c8ec271-d20f-4a5d-baf4-87e5a98fc35a)
 
-Die Ser2Net-Verbindung wurde mit ESPHome getestet.
+The Ser2Net connection was tested with ESPHome.
 ```
 external_components:
   - source: github://oxan/esphome-stream-server
@@ -42,7 +44,7 @@ stream_server:
    buffer_size: 2048
 ```
 
-Aktuell werden folgende Datenpunkte ausgelesen:
+The following data points are currently read out:
 ```
 pack_voltage
 current
@@ -89,6 +91,9 @@ power_temp
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
 -->
+### **WORK IN PROGRESS**
+* (DpunktS) ioBroker repository checker Issues #9 fix
+
 ### 0.0.6 (2025-02-13)
 * (DpunktS) adapter-dev 1.0.1 > 1.3.0
 
@@ -110,7 +115,7 @@ power_temp
 ## License
 MIT License
 
-Copyright (c) 2025 DpunktS <leer@leer.de>
+Copyright (c) 2025 DpunktS <dpunkts@online.de>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

@@ -1,5 +1,5 @@
 {
 	"seplos-v3-sniffer adapter settings": "Adapter settings for seplos-v3-sniffer",
-	"serial adapter (tcp://ip:2001, ttyS0)": "serial adapter (tcp://ip:2001, ttyS0)",
-	"update_interval (s)": "update interval (s)" 
+	"serial adapter": "serial adapter (tcp://ip:2001, /dev/ttyS0)",
+	"update_interval": "update interval (s)" 
 }
