@@ -298,7 +298,7 @@ class SeplosV3Sniffer extends utils.Adapter {
                         read: true,
                         write: false,
                     },
-                    native: {}
+                    native: {},
                 });
                 this.setState(key, { val: value, ack: true });
             }
