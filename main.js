@@ -23,6 +23,7 @@ class SeplosV3Sniffer extends utils.Adapter {
         this.lastDataReceived = Date.now(); // Letzte empfangene Daten
         this.dataTimeout = 10000; // Timeout für Datenprüfung (10 Sekunden)
         this.dataCheckInterval = null; // Intervall für Datenprüfung
+        this.isShuttingDown = false;
     }
 
     async onReady() {
@@ -137,6 +138,7 @@ class SeplosV3Sniffer extends utils.Adapter {
 
     async onUnload(callback) {
         try {
+            this.isShuttingDown = true; // Set shutdown flag
             this.log.info('Cleaning up before shutdown...');
             this.buffer = [];
             this.knownObjects.clear();
@@ -200,6 +202,9 @@ class SeplosV3Sniffer extends utils.Adapter {
     }
 
     async ensureObjectExists(id, { type, common, native = {} }) {
+        if (this.isShuttingDown) {
+            return; // Skip state creation during shutdown
+        }
         try {
             const obj = await this.getObjectAsync(id);
             if (!obj) {
@@ -237,51 +242,51 @@ class SeplosV3Sniffer extends utils.Adapter {
 
         if (buffer[2] === 0x24) {
             updates = {
-                [`${bmsFolder}.pack_voltage`]: { value: buffer.readUInt16BE(3) / 100.0, unit: 'V' },
-                [`${bmsFolder}.current`]: { value: buffer.readInt16BE(5) / 100.0, unit: 'A' },
-                [`${bmsFolder}.remaining_capacity`]: { value: buffer.readUInt16BE(7) / 100.0, unit: 'Ah' },
-                [`${bmsFolder}.total_capacity`]: { value: buffer.readUInt16BE(9) / 100.0, unit: 'AH' },
-                [`${bmsFolder}.total_discharge_capacity`]: { value: buffer.readUInt16BE(11) / 0.1, unit: 'AH' },
-                [`${bmsFolder}.soc`]: { value: buffer.readUInt16BE(13) / 10.0, unit: '%' },
-                [`${bmsFolder}.soh`]: { value: buffer.readUInt16BE(15) / 10.0, unit: '%' },
-                [`${bmsFolder}.cycle_count`]: { value: buffer.readUInt16BE(17), unit: 'cycles' },
-                [`${bmsFolder}.average_cell_voltage`]: { value: buffer.readUInt16BE(19) / 1000.0, unit: 'V' },
-                [`${bmsFolder}.average_cell_temp`]: { value: buffer.readInt16BE(21) / 10.0 - 273.15, unit: '°C' },
-                [`${bmsFolder}.max_cell_voltage`]: { value: buffer.readUInt16BE(23) / 1000.0, unit: 'V' },
-                [`${bmsFolder}.min_cell_voltage`]: { value: buffer.readUInt16BE(25) / 1000.0, unit: 'V' },
-                [`${bmsFolder}.max_cell_temp`]: { value: buffer.readUInt16BE(27) / 10.0 - 273.15, unit: '°C' },
-                [`${bmsFolder}.min_cell_temp`]: { value: buffer.readUInt16BE(29) / 10.0 - 273.15, unit: '°C' },
-                [`${bmsFolder}.maxdiscurt`]: { value: buffer.readUInt16BE(33) / 1.0, unit: 'A' },
-                [`${bmsFolder}.maxchgcurt`]: { value: buffer.readUInt16BE(35) / 1.0, unit: 'A' },
+                [`${bmsFolder}.pack_voltage`]: { value: buffer.readUInt16BE(3) / 100.0, unit: 'V', role: 'value.voltage', ctype: 'number' },
+                [`${bmsFolder}.current`]: { value: buffer.readInt16BE(5) / 100.0, unit: 'A', role: 'value.current', ctype: 'number' },
+                [`${bmsFolder}.remaining_capacity`]: { value: buffer.readUInt16BE(7) / 100.0, unit: 'Ah', role: 'value', ctype: 'number' },
+                [`${bmsFolder}.total_capacity`]: { value: buffer.readUInt16BE(9) / 100.0, unit: 'AH', role: 'value', ctype: 'number' },
+                [`${bmsFolder}.total_discharge_capacity`]: { value: buffer.readUInt16BE(11) / 0.1, unit: 'AH', role: 'value', ctype: 'number' },
+                [`${bmsFolder}.soc`]: { value: buffer.readUInt16BE(13) / 10.0, unit: '%', role: 'value', ctype: 'number' },
+                [`${bmsFolder}.soh`]: { value: buffer.readUInt16BE(15) / 10.0, unit: '%', role: 'value', ctype: 'number' },
+                [`${bmsFolder}.cycle_count`]: { value: buffer.readUInt16BE(17), unit: 'cycles', role: 'value', ctype: 'number' },
+                [`${bmsFolder}.average_cell_voltage`]: { value: buffer.readUInt16BE(19) / 1000.0, unit: 'V', role: 'value.voltage', ctype: 'number' },
+                [`${bmsFolder}.average_cell_temp`]: { value: buffer.readInt16BE(21) / 10.0 - 273.15, unit: '°C', role: 'value.temperature', ctype: 'number' },
+                [`${bmsFolder}.max_cell_voltage`]: { value: buffer.readUInt16BE(23) / 1000.0, unit: 'V', role: 'value.voltage', ctype: 'number' },
+                [`${bmsFolder}.min_cell_voltage`]: { value: buffer.readUInt16BE(25) / 1000.0, unit: 'V', role: 'value.voltage', ctype: 'number' },
+                [`${bmsFolder}.max_cell_temp`]: { value: buffer.readUInt16BE(27) / 10.0 - 273.15, unit: '°C', role: 'value.temperature', ctype: 'number' },
+                [`${bmsFolder}.min_cell_temp`]: { value: buffer.readUInt16BE(29) / 10.0 - 273.15, unit: '°C', role: 'value.temperature', ctype: 'number' },
+                [`${bmsFolder}.maxdiscurt`]: { value: buffer.readUInt16BE(33) / 1.0, unit: 'A', role: 'value.current', ctype: 'number' },
+                [`${bmsFolder}.maxchgcurt`]: { value: buffer.readUInt16BE(35) / 1.0, unit: 'A', role: 'value.current', ctype: 'number' },
             };
         } else if (buffer[2] === 0x34) {
             updates = {
-                [`${bmsFolder}.cell_1_voltage`]: { value: buffer.readUInt16BE(3) / 1000.0, unit: 'V' },
-                [`${bmsFolder}.cell_2_voltage`]: { value: buffer.readUInt16BE(5) / 1000.0, unit: 'V' },
-                [`${bmsFolder}.cell_3_voltage`]: { value: buffer.readUInt16BE(7) / 1000.0, unit: 'V' },
-                [`${bmsFolder}.cell_4_voltage`]: { value: buffer.readUInt16BE(9) / 1000.0, unit: 'V' },
-                [`${bmsFolder}.cell_5_voltage`]: { value: buffer.readUInt16BE(11) / 1000.0, unit: 'V' },
-                [`${bmsFolder}.cell_6_voltage`]: { value: buffer.readUInt16BE(13) / 1000.0, unit: 'V' },
-                [`${bmsFolder}.cell_7_voltage`]: { value: buffer.readUInt16BE(15) / 1000.0, unit: 'V' },
-                [`${bmsFolder}.cell_8_voltage`]: { value: buffer.readUInt16BE(17) / 1000.0, unit: 'V' },
-                [`${bmsFolder}.cell_9_voltage`]: { value: buffer.readUInt16BE(19) / 1000.0, unit: 'V' },
-                [`${bmsFolder}.cell_10_voltage`]: { value: buffer.readUInt16BE(21) / 1000.0, unit: 'V' },
-                [`${bmsFolder}.cell_11_voltage`]: { value: buffer.readUInt16BE(23) / 1000.0, unit: 'V' },
-                [`${bmsFolder}.cell_12_voltage`]: { value: buffer.readUInt16BE(25) / 1000.0, unit: 'V' },
-                [`${bmsFolder}.cell_13_voltage`]: { value: buffer.readUInt16BE(27) / 1000.0, unit: 'V' },
-                [`${bmsFolder}.cell_14_voltage`]: { value: buffer.readUInt16BE(29) / 1000.0, unit: 'V' },
-                [`${bmsFolder}.cell_15_voltage`]: { value: buffer.readUInt16BE(31) / 1000.0, unit: 'V' },
-                [`${bmsFolder}.cell_16_voltage`]: { value: buffer.readUInt16BE(33) / 1000.0, unit: 'V' },
-                [`${bmsFolder}.cell_temp_1`]: { value: buffer.readUInt16BE(35) / 10.0 - 273.15, unit: '°C' },
-                [`${bmsFolder}.cell_temp_2`]: { value: buffer.readUInt16BE(37) / 10.0 - 273.15, unit: '°C' },
-                [`${bmsFolder}.cell_temp_3`]: { value: buffer.readUInt16BE(39) / 10.0 - 273.15, unit: '°C' },
-                [`${bmsFolder}.cell_temp_4`]: { value: buffer.readUInt16BE(41) / 10.0 - 273.15, unit: '°C' },
-                [`${bmsFolder}.case_temp`]: { value: buffer.readUInt16BE(51) / 10.0 - 273.15, unit: '°C' },
-                [`${bmsFolder}.power_temp`]: { value: buffer.readUInt16BE(53) / 10.0 - 273.15, unit: '°C' },
+                [`${bmsFolder}.cell_1_voltage`]: { value: buffer.readUInt16BE(3) / 1000.0, unit: 'V', role: 'value.voltage', ctype: 'number' },
+                [`${bmsFolder}.cell_2_voltage`]: { value: buffer.readUInt16BE(5) / 1000.0, unit: 'V', role: 'value.voltage', ctype: 'number' },
+                [`${bmsFolder}.cell_3_voltage`]: { value: buffer.readUInt16BE(7) / 1000.0, unit: 'V', role: 'value.voltage', ctype: 'number' },
+                [`${bmsFolder}.cell_4_voltage`]: { value: buffer.readUInt16BE(9) / 1000.0, unit: 'V', role: 'value.voltage', ctype: 'number' },
+                [`${bmsFolder}.cell_5_voltage`]: { value: buffer.readUInt16BE(11) / 1000.0, unit: 'V', role: 'value.voltage', ctype: 'number' },
+                [`${bmsFolder}.cell_6_voltage`]: { value: buffer.readUInt16BE(13) / 1000.0, unit: 'V', role: 'value.voltage', ctype: 'number' },
+                [`${bmsFolder}.cell_7_voltage`]: { value: buffer.readUInt16BE(15) / 1000.0, unit: 'V', role: 'value.voltage', ctype: 'number' },
+                [`${bmsFolder}.cell_8_voltage`]: { value: buffer.readUInt16BE(17) / 1000.0, unit: 'V', role: 'value.voltage', ctype: 'number' },
+                [`${bmsFolder}.cell_9_voltage`]: { value: buffer.readUInt16BE(19) / 1000.0, unit: 'V', role: 'value.voltage', ctype: 'number' },
+                [`${bmsFolder}.cell_10_voltage`]: { value: buffer.readUInt16BE(21) / 1000.0, unit: 'V', role: 'value.voltage', ctype: 'number' },
+                [`${bmsFolder}.cell_11_voltage`]: { value: buffer.readUInt16BE(23) / 1000.0, unit: 'V', role: 'value.voltage', ctype: 'number' },
+                [`${bmsFolder}.cell_12_voltage`]: { value: buffer.readUInt16BE(25) / 1000.0, unit: 'V', role: 'value.voltage', ctype: 'number' },
+                [`${bmsFolder}.cell_13_voltage`]: { value: buffer.readUInt16BE(27) / 1000.0, unit: 'V', role: 'value.voltage', ctype: 'number' },
+                [`${bmsFolder}.cell_14_voltage`]: { value: buffer.readUInt16BE(29) / 1000.0, unit: 'V', role: 'value.voltage', ctype: 'number' },
+                [`${bmsFolder}.cell_15_voltage`]: { value: buffer.readUInt16BE(31) / 1000.0, unit: 'V', role: 'value.voltage', ctype: 'number' },
+                [`${bmsFolder}.cell_16_voltage`]: { value: buffer.readUInt16BE(33) / 1000.0, unit: 'V', role: 'value.voltage', ctype: 'number' },
+                [`${bmsFolder}.cell_temp_1`]: { value: buffer.readUInt16BE(35) / 10.0 - 273.15, unit: '°C', role: 'value.temperature', ctype: 'number' },
+                [`${bmsFolder}.cell_temp_2`]: { value: buffer.readUInt16BE(37) / 10.0 - 273.15, unit: '°C', role: 'value.temperature', ctype: 'number' },
+                [`${bmsFolder}.cell_temp_3`]: { value: buffer.readUInt16BE(39) / 10.0 - 273.15, unit: '°C', role: 'value.temperature', ctype: 'number' },
+                [`${bmsFolder}.cell_temp_4`]: { value: buffer.readUInt16BE(41) / 10.0 - 273.15, unit: '°C', role: 'value.temperature', ctype: 'number' },
+                [`${bmsFolder}.case_temp`]: { value: buffer.readUInt16BE(51) / 10.0 - 273.15, unit: '°C', role: 'value.temperature', ctype: 'number' },
+                [`${bmsFolder}.power_temp`]: { value: buffer.readUInt16BE(53) / 10.0 - 273.15, unit: '°C', role: 'value.temperature', ctype: 'number' },
             };
         }
 
-        for (const [key, { value, unit }] of Object.entries(updates)) {
+        for (const [key, { value, unit, role, ctype }] of Object.entries(updates)) {
             if (
                 !this.lastUpdate[key] ||
                 now - this.lastUpdate[key] >= this.updateInterval ||
@@ -292,15 +297,17 @@ class SeplosV3Sniffer extends utils.Adapter {
                     type: 'state',
                     common: {
                         name: key,
-                        type: 'number',
-                        role: 'value',
+                        type: ctype,
+                        role,
                         unit,
                         read: true,
                         write: false,
                     },
                     native: {},
                 });
-                this.setState(key, { val: value, ack: true });
+                if (!this.isShuttingDown) {
+                    this.setState(key, { val: value, ack: true });
+                }
             }
         }
     }
