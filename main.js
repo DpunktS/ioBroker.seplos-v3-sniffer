@@ -13,7 +13,7 @@ class SeplosV3Sniffer extends utils.Adapter {
 
         this.on('ready', this.onReady.bind(this));
         this.on('unload', this.onUnload.bind(this));
-        this.knownObjects = new Set(); // cache for known objects
+        this.knownIds = []; // Optimierung für setObjectNotExists
         this.serialPort = null;
         this.socket = null;
         this.buffer = [];
@@ -141,7 +141,7 @@ class SeplosV3Sniffer extends utils.Adapter {
             this.isShuttingDown = true; // Set shutdown flag
             this.log.info('Cleaning up before shutdown...');
             this.buffer = [];
-            this.knownObjects.clear();
+            this.lastUpdate = {};
             if (this.serialPort) {
                 this.log.info('Closing serial connection...');
                 this.serialPort.close();
@@ -160,6 +160,7 @@ class SeplosV3Sniffer extends utils.Adapter {
                 this.clearInterval(this.dataCheckInterval);
                 this.dataCheckInterval = null;
             }
+            this.knownIds = []; // Leeren der bekannten IDs
             this.setState('info.connection', false, true);
             this.log.info('Shutdown complete.');
 
@@ -202,22 +203,18 @@ class SeplosV3Sniffer extends utils.Adapter {
     }
 
     async ensureObjectExists(id, { type, common, native = {} }) {
-        if (this.isShuttingDown) {
-            return; // Skip state creation during shutdown
+        if (this.isShuttingDown || this.knownIds.includes(id)) {
+            return; // Nichts tun, wenn das Objekt bereits existiert oder das System herunterfährt
         }
         try {
-            const obj = await this.getObjectAsync(id);
-            if (!obj) {
-                await this.setObjectNotExistsAsync(id, {
-                    type,
-                    common,
-                    native,
-                });
-            }
-            this.knownObjects.add(id);
+            await this.setObjectNotExistsAsync(id, {
+                type,
+                common,
+                native,
+            });
+            this.knownIds.push(id);
         } catch (err) {
             this.log.error(`Error creating state ${id}: ${err.message}`);
-            this.knownObjects.delete(id); // Falls ein Fehler auftritt, wird das Objekt nicht als bekannt gespeichert
         }
     }
 
@@ -479,8 +476,7 @@ class SeplosV3Sniffer extends utils.Adapter {
         for (const [key, { value, unit, role, ctype }] of Object.entries(updates)) {
             if (
                 !this.lastUpdate[key] ||
-                now - this.lastUpdate[key] >= this.updateInterval ||
-                !this.knownObjects.has(key)
+                now - this.lastUpdate[key] >= this.updateInterval
             ) {
                 this.lastUpdate[key] = now;
                 await this.ensureObjectExists(key, {

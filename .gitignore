@@ -2,8 +2,6 @@
 .*/
 !.vscode/
 !.github/
-!.main.original
-!.README.original
 
 *.code-workspace
 node_modules
