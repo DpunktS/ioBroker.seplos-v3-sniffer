@@ -474,10 +474,7 @@ class SeplosV3Sniffer extends utils.Adapter {
         }
 
         for (const [key, { value, unit, role, ctype }] of Object.entries(updates)) {
-            if (
-                !this.lastUpdate[key] ||
-                now - this.lastUpdate[key] >= this.updateInterval
-            ) {
+            if (!this.lastUpdate[key] || now - this.lastUpdate[key] >= this.updateInterval) {
                 this.lastUpdate[key] = now;
                 await this.ensureObjectExists(key, {
                     type: 'state',
