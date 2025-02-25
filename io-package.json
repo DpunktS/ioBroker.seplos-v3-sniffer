@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "seplos-v3-sniffer",
-    "version": "0.0.8",
+    "version": "0.1.0",
     "news": {
+      "0.1.0": {
+        "en": "infos, alarms and protections messages added",
+        "de": "informationen, alarme und schutzmeldungen hinzugefügt",
+        "ru": "информация, сигналы тревоги и сообщения о защите добавлены",
+        "pt": "infos, alarmes e proteções mensagens adicionadas",
+        "nl": "informatie, alarmen en beveiligingsberichten toegevoegd",
+        "fr": "infos, alarmes et messages de protection ajoutés",
+        "it": "info, allarmi e protezioni messaggi aggiunti",
+        "es": "información, alarmas y mensajes de protección añadidos",
+        "pl": "dodane informacje, alarmy i komunikaty ochronne",
+        "uk": "додано інформацію, сигналізацію та повідомлення про захист",
+        "zh-cn": "添加信息、警报和保护信息"
+      },
       "0.0.8": {
         "en": "ioBroker repository checker bugfix",
         "de": "ioBroker Repository Checker Bugfix",
