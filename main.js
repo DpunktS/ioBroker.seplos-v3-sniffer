@@ -173,12 +173,26 @@ class SeplosV3Sniffer extends utils.Adapter {
 
     isValidHeader(buffer) {
         return (
-            buffer[0] >= 0x01 && buffer[0] <= 0x10 && buffer[1] === 0x04 && (buffer[2] === 0x24 || buffer[2] === 0x34)
+            (buffer[0] >= 0x01 &&
+                buffer[0] <= 0x10 &&
+                buffer[1] === 0x04 &&
+                (buffer[2] === 0x24 || buffer[2] === 0x34)) ||
+            (buffer[0] >= 0x01 && buffer[0] <= 0x10 && buffer[1] === 0x01 && buffer[2] === 0x12)
         );
     }
 
     getExpectedLength(buffer) {
-        return buffer[2] === 0x24 ? 41 : 57;
+        // +3 Header, +2 CRC, =+5
+        if (buffer[2] === 0x24) {
+            return 41;
+        } // (0x24) 36+5=41
+        if (buffer[2] === 0x34) {
+            return 57;
+        } // (0x34) 52+5=57
+        if (buffer[1] === 0x01 && buffer[2] === 0x12) {
+            return 23;
+        } // (0x12) 18+5=23
+        return 0; // If an invalid packet arrives
     }
 
     validateCRC(buffer, length) {
@@ -470,6 +484,324 @@ class SeplosV3Sniffer extends utils.Adapter {
                     role: 'value.temperature',
                     ctype: 'number',
                 },
+            };
+        } else if (buffer[2] === 0x12) {
+            let activeAlarms = [];
+            let activeProtections = [];
+
+            const parseBits = byte => [...Array(8)].map((_, i) => (byte >> i) & 1);
+            updates = {};
+
+            // Spannungsalarme (Low/High)
+            const lowVoltageCells = [];
+            const highVoltageCells = [];
+            // Low Voltage Alarme für Zellen 1–8 (buffer[3])
+            parseBits(buffer[3]).forEach((bit, i) => {
+                if (bit) {
+                    lowVoltageCells.push(i + 1);
+                }
+            });
+            // Low Voltage Alarme für Zellen 9–16 (buffer[4])
+            parseBits(buffer[4]).forEach((bit, i) => {
+                if (bit) {
+                    lowVoltageCells.push(i + 9);
+                }
+            });
+            // High Voltage Alarme für Zellen 1–8 (buffer[5])
+            parseBits(buffer[5]).forEach((bit, i) => {
+                if (bit) {
+                    highVoltageCells.push(i + 1);
+                }
+            });
+            // High Voltage Alarme für Zellen 9–16 (buffer[6])
+            parseBits(buffer[6]).forEach((bit, i) => {
+                if (bit) {
+                    highVoltageCells.push(i + 9);
+                }
+            });
+            // Formatierung des Strings
+            const lowvoltStr = lowVoltageCells.length ? `Low: ${lowVoltageCells.join(', ')}` : '';
+            const highvoltStr = highVoltageCells.length ? `High: ${highVoltageCells.join(', ')}` : '';
+            const voltString = [lowvoltStr, highvoltStr].filter(Boolean).join(' | ') || '';
+
+            // Temperature Alarms (Low/High)
+            const lowTempCells = [];
+            const highTempCells = [];
+            // Low Temperature Alarme für Zellen 1–8 (buffer[7])
+            parseBits(buffer[7]).forEach((bit, i) => {
+                if (bit) {
+                    lowTempCells.push(i + 1);
+                }
+            });
+            // High Temperature Alarme für Zellen 1–8 (buffer[8])
+            parseBits(buffer[8]).forEach((bit, i) => {
+                if (bit) {
+                    highTempCells.push(i + 1);
+                }
+            });
+            // Formatierung des Strings
+            const lowtempStr = lowTempCells.length ? `Low: ${lowTempCells.join(', ')}` : '';
+            const hightempStr = highTempCells.length ? `High: ${highTempCells.join(', ')}` : '';
+            const tempString = [lowtempStr, hightempStr].filter(Boolean).join(' | ') || '';
+
+            // Balancing-Status
+            const balancingCells = [];
+            // Balancing für Zellen 1–8 (buffer[9])
+            parseBits(buffer[9]).forEach((bit, i) => {
+                if (bit) {
+                    balancingCells.push(i + 1);
+                }
+            });
+            // Balancing für Zellen 9–16 (buffer[10])
+            parseBits(buffer[10]).forEach((bit, i) => {
+                if (bit) {
+                    balancingCells.push(i + 9);
+                }
+            });
+
+            // Systemstatus (TB09)
+            const systemStatus = [];
+            if (buffer[11] & 0x01) {
+                systemStatus.push('Discharge');
+            }
+            if (buffer[11] & 0x02) {
+                systemStatus.push('Charge');
+            }
+            if (buffer[11] & 0x04) {
+                systemStatus.push('Floating Charge');
+            }
+            if (buffer[11] & 0x08) {
+                systemStatus.push('Full Charge');
+            }
+            if (buffer[11] & 0x10) {
+                systemStatus.push('Standy Mode');
+            }
+            if (buffer[11] & 0x20) {
+                systemStatus.push('Turn Off');
+            }
+
+            // Voltage Event Code nach TB02 dekodieren
+            if (buffer[12] & 0x01) {
+                activeAlarms.push('Cell High Voltage Alarm');
+            }
+            if (buffer[12] & 0x02) {
+                activeProtections.push('Cell Over Voltage Protection');
+            }
+            if (buffer[12] & 0x04) {
+                activeAlarms.push('Cell Low Voltage Alarm');
+            }
+            if (buffer[12] & 0x08) {
+                activeProtections.push('Cell Under Voltage Protection');
+            }
+            if (buffer[12] & 0x10) {
+                activeAlarms.push('Pack High Voltage Alarm');
+            }
+            if (buffer[12] & 0x20) {
+                activeProtections.push('Pack Over Voltage Protection');
+            }
+            if (buffer[12] & 0x40) {
+                activeAlarms.push('Pack Low Voltage Alarm');
+            }
+            if (buffer[12] & 0x80) {
+                activeProtections.push('Pack Under Voltage Protection');
+            }
+
+            // Temperature Event Code nach TB03 dekodieren
+            if (buffer[13] & 0x01) {
+                activeAlarms.push('Charge High Temperature Alarm');
+            }
+            if (buffer[13] & 0x02) {
+                activeProtections.push('Charge High Temperature Protection');
+            }
+            if (buffer[13] & 0x04) {
+                activeAlarms.push('Charge Low Temperature Alarm');
+            }
+            if (buffer[13] & 0x08) {
+                activeProtections.push('Charge Under Temperature Protection');
+            }
+            if (buffer[13] & 0x10) {
+                activeAlarms.push('Discharge High Temperature Alarm');
+            }
+            if (buffer[13] & 0x20) {
+                activeProtections.push('Discharge Over Temperature Protection');
+            }
+            if (buffer[13] & 0x40) {
+                activeAlarms.push('Discharge Low Temperature Alarm');
+            }
+            if (buffer[13] & 0x80) {
+                activeProtections.push('Discharge Under Temperature Protection');
+            }
+
+            // Environment Temperature Event Code nach TB04 dekodieren
+            if (buffer[14] & 0x01) {
+                activeAlarms.push('High Environment Temperature Alarm');
+            }
+            if (buffer[14] & 0x02) {
+                activeProtections.push('Over Environment Temperature Protection');
+            }
+            if (buffer[14] & 0x04) {
+                activeAlarms.push('Low Environment Temperature Alarm');
+            }
+            if (buffer[14] & 0x08) {
+                activeProtections.push('Under Environment Temperature Protection');
+            }
+            if (buffer[14] & 0x10) {
+                activeAlarms.push('High Power Temperature Alarm');
+            }
+            if (buffer[14] & 0x20) {
+                activeProtections.push('Over Power Temperature Protection');
+            }
+            if (buffer[14] & 0x40) {
+                activeAlarms.push('Cell Temperature Low Heating');
+            }
+
+            // Current Event Code nach TB05 dekodieren
+            if (buffer[15] & 0x01) {
+                activeAlarms.push('Charge Current Alarm');
+            }
+            if (buffer[15] & 0x02) {
+                activeProtections.push('Charge Over Current Protection');
+            }
+            if (buffer[15] & 0x04) {
+                activeProtections.push('Charge Second Level Current Protection');
+            }
+            if (buffer[15] & 0x08) {
+                activeAlarms.push('Discharge Current Alarm');
+            }
+            if (buffer[15] & 0x10) {
+                activeProtections.push('Discharge Over Current Protection');
+            }
+            if (buffer[15] & 0x20) {
+                activeProtections.push('Discharge Second Level Over Current Protection');
+            }
+            if (buffer[15] & 0x40) {
+                activeProtections.push('Output Short Circuit Protection');
+            }
+
+            // Second Current Event Code nach TB16 dekodieren
+            if (buffer[16] & 0x01) {
+                activeAlarms.push('Output Short Latch Up');
+            }
+            if (buffer[16] & 0x04) {
+                activeAlarms.push('Second Charge Latch Up');
+            }
+            if (buffer[16] & 0x08) {
+                activeAlarms.push('Second Discharge Latch Up');
+            }
+
+            // Residual Capacity Event Code nach TB06 dekodieren
+            if (buffer[17] & 0x04) {
+                activeAlarms.push('SOC Alarm');
+            }
+            if (buffer[17] & 0x08) {
+                activeProtections.push('SOC Protection');
+            }
+            if (buffer[17] & 0x10) {
+                activeAlarms.push('Cell Difference Alarm');
+            }
+
+            // FET Event Code nach TB07 dekodieren
+            const FETEvent = [];
+            if (buffer[18] & 0x01) {
+                FETEvent.push('Discharge FET On');
+            }
+            if (buffer[18] & 0x02) {
+                FETEvent.push('Charge FET On');
+            }
+            if (buffer[18] & 0x04) {
+                FETEvent.push('Current Limiting FET On');
+            }
+            if (buffer[18] & 0x08) {
+                FETEvent.push('Heating On');
+            }
+
+            // Battery Equalization State Code nach TB08 dekodieren
+            if (buffer[19] & 0x01) {
+                activeAlarms.push('Low SOC Alarm');
+            }
+            if (buffer[19] & 0x02) {
+                activeAlarms.push('Intermittent Charge');
+            }
+            if (buffer[19] & 0x04) {
+                activeAlarms.push('External Switch Conrol');
+            }
+            if (buffer[19] & 0x08) {
+                activeAlarms.push('Static Standy Sleep Mode');
+            }
+            if (buffer[19] & 0x10) {
+                activeAlarms.push('History Data Recording');
+            }
+            if (buffer[19] & 0x20) {
+                activeProtections.push('Under SOC Protections');
+            }
+            if (buffer[19] & 0x40) {
+                activeAlarms.push('Active Limited Current');
+            }
+            if (buffer[19] & 0x80) {
+                activeAlarms.push('Passive Limited Current');
+            }
+
+            // Hard Fault Event Code nach TB15 dekodieren
+            if (buffer[20] & 0x01) {
+                activeProtections.push('NTC Fault');
+            }
+            if (buffer[20] & 0x02) {
+                activeProtections.push('AFE Fault');
+            }
+            if (buffer[20] & 0x04) {
+                activeProtections.push('Charge Mosfet Fault');
+            }
+            if (buffer[20] & 0x08) {
+                activeProtections.push('Discharge Mosfet Fault');
+            }
+            if (buffer[20] & 0x10) {
+                activeProtections.push('Cell Fault');
+            }
+            if (buffer[20] & 0x20) {
+                activeProtections.push('Break Line Fault');
+            }
+            if (buffer[20] & 0x40) {
+                activeProtections.push('Key Fault');
+            }
+            if (buffer[20] & 0x80) {
+                activeProtections.push('Aerosol Alarm');
+            }
+
+            // Create string data points for active infos, alarms, protections, usw.
+            updates[`${bmsFolder}.system_status`] = {
+                value: systemStatus.join(', '),
+                role: 'text',
+                ctype: 'string',
+            };
+            updates[`${bmsFolder}.active_balancing_cells`] = {
+                value: balancingCells.length ? balancingCells.join(', ') : '',
+                role: 'text',
+                ctype: 'string',
+            };
+            updates[`${bmsFolder}.cell_temperature_alarms`] = {
+                value: tempString,
+                role: 'text',
+                ctype: 'string',
+            };
+            updates[`${bmsFolder}.cell_voltage_alarms`] = {
+                value: voltString,
+                role: 'text',
+                ctype: 'string',
+            };
+            updates[`${bmsFolder}.FET_status`] = {
+                value: FETEvent.join(', '),
+                role: 'text',
+                ctype: 'string',
+            };
+            updates[`${bmsFolder}.active_alarms`] = {
+                value: activeAlarms.length ? activeAlarms.join(', ') : '',
+                role: 'text',
+                ctype: 'string',
+            };
+            updates[`${bmsFolder}.active_protections`] = {
+                value: activeProtections.length ? activeProtections.join(', ') : '',
+                role: 'text',
+                ctype: 'string',
             };
         }
 
