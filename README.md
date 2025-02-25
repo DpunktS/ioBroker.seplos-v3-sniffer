@@ -84,6 +84,13 @@ cell_temp_3
 cell_temp_4
 case_temp
 power_temp
+system_status
+active_balancing_cells
+cell_temperature_alarms
+cell_voltage_alarms
+FET_status
+active_alarms
+active_protections
 ```
 
 ## Changelog
