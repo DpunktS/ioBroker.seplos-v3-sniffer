@@ -119,6 +119,10 @@ class SeplosV3Sniffer extends utils.Adapter {
         for (const byte of data) {
             this.buffer.push(byte);
 
+            if (this.buffer.length > 100) {
+                this.buffer.shift();
+            }
+
             if (this.buffer.length >= 5) {
                 if (!this.isValidHeader(this.buffer)) {
                     this.buffer.shift();
@@ -130,7 +134,8 @@ class SeplosV3Sniffer extends utils.Adapter {
                     if (this.validateCRC(this.buffer, expectedLength)) {
                         this.processPacket(Buffer.from(this.buffer.slice(0, expectedLength)));
                     }
-                    this.buffer = [];
+                    //this.buffer = [];
+                    this.buffer.shift();
                 }
             }
         }
