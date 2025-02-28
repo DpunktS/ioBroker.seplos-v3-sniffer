@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "seplos-v3-sniffer",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "news": {
+      "0.1.1": {
+        "en": "bugfix",
+        "de": "fehlerbehebung",
+        "ru": "исправление ошибок",
+        "pt": "correção de erros",
+        "nl": "bugfix",
+        "fr": "correction du bug",
+        "it": "bugfix",
+        "es": "bugfix",
+        "pl": "bugfix",
+        "uk": "панчохи",
+        "zh-cn": "错误修正"
+      },
       "0.1.0": {
         "en": "infos, alarms and protections messages added",
         "de": "informationen, alarme und schutzmeldungen hinzugefügt",
