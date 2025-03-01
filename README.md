@@ -98,6 +98,8 @@ active_protections
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
 -->
+### **WORK IN PROGRESS**
+
 ### 0.1.1 (2025-02-28)
 * (DpunktS) bugfix
 
