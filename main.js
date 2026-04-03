@@ -1,7 +1,7 @@
 'use strict';
 
 const { SerialPort } = require('serialport');
-const net = require('net');
+const net = require('node:net');
 const utils = require('@iobroker/adapter-core');
 
 class SeplosV3Sniffer extends utils.Adapter {
