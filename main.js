@@ -331,10 +331,10 @@ class SeplosV3Sniffer extends utils.Adapter {
                     ctype: 'number',
                 },
                 [`${bmsFolder}.delta_cell_voltage`]: {
-                value: (buffer.readUInt16BE(23) - buffer.readUInt16BE(25)),
-                unit: 'mV',
-                role: 'value.voltage',
-                ctype: 'number',
+                    value: (buffer.readUInt16BE(23) - buffer.readUInt16BE(25)),
+                    unit: 'mV',
+                    role: 'value.voltage',
+                    ctype: 'number',
                 },
                 [`${bmsFolder}.max_cell_temp`]: {
                     value: buffer.readUInt16BE(27) / 10.0 - 273.15,
