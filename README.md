@@ -99,8 +99,8 @@ active_protections
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
 -->
-### **WORK IN PROGRESS**
-* (DpunktS) Node.js >= 20
+### 1.0.0 (2026-04-08)
+* (DpunktS) add delta_cell_voltage
 
 ### 0.1.1 (2025-02-28)
 * (DpunktS) bugfix
