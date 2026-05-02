@@ -99,6 +99,9 @@ active_protections
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
 -->
+### **WORK IN PROGRESS**
+- (copilot) Adapter requires node.js >= 22 now
+
 ### 1.0.0 (2026-04-08)
 * (DpunktS) add delta_cell_voltage
 
