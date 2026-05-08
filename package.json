@@ -21,7 +21,7 @@
     "url": "https://github.com/DpunktS/ioBroker.seplos-v3-sniffer.git"
   },
   "engines": {
-    "node": ">= 20"
+    "node": ">= 22"
   },
   "dependencies": {
     "@iobroker/adapter-core": "^3.3.2",
