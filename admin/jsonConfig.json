@@ -9,7 +9,7 @@
             "lg": 12,
             "xl": 12,
             "type": "text",
-            "label": "serial adapter (tcp://ip:2001, /dev/ttyS0)",
+            "label": "serial adapter",
             "newLine": true
         },
         "update_interval": {
@@ -19,7 +19,7 @@
             "lg": 12,
             "xl": 12,
             "type": "number",
-            "label": "update_interval (s)",
+            "label": "update_interval",
             "min": 0,
             "step": 1,
             "newLine": true
