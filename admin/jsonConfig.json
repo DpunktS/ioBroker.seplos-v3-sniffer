@@ -1,28 +1,28 @@
 {
-	"i18n": true,
-	"type": "panel",
-	"items": {
-		"serial adapter": {
-			"xs": 12,
+    "i18n": true,
+    "type": "panel",
+    "items": {
+        "serial adapter": {
+            "xs": 12,
             "sm": 12,
             "md": 12,
             "lg": 12,
             "xl": 12,
-			"type": "text",
-			"label": "serial adapter (tcp://ip:2001, /dev/ttyS0)",
-			"newLine": true
-		},
-		"update_interval": {
-			"xs": 12,
+            "type": "text",
+            "label": "serial adapter (tcp://ip:2001, /dev/ttyS0)",
+            "newLine": true
+        },
+        "update_interval": {
+            "xs": 12,
             "sm": 12,
             "md": 12,
             "lg": 12,
             "xl": 12,
-			"type": "number",
-			"label": "update_interval (s)",
-			"min": 0,
-			"step": 1,
-			"newLine": true
-		}
-	}
+            "type": "number",
+            "label": "update_interval (s)",
+            "min": 0,
+            "step": 1,
+            "newLine": true
+        }
+    }
 }
